@@ -1,0 +1,10 @@
+.vs/
+bin/
+obj/
+*.exe
+*.dll
+*.csproj
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+*.user
