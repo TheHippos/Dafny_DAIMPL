@@ -8,3 +8,5 @@ obj/
 *.deps.json
 *.runtimeconfig.json
 *.user
+*.csv
+*.sln

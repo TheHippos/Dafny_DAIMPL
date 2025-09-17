@@ -1,73 +1,5 @@
-import opened Datatypes
-import opened SudokuSolver
-method {:main} Main()
-{
-        var board1: Board := CreateBoardFromSeq([
-        [5,3,4, 6,7,8, 9,1,2],
-        [6,7,2, 1,9,5, 3,4,8],
-        [1,9,8, 3,4,2, 5,6,7],
-        [8,5,9, 7,6,1, 4,2,3],
-        [4,2,6, 8,5,3, 7,9,1],
-        [7,1,3, 9,2,4, 8,5,6],
-        [9,6,1, 5,3,7, 2,8,4],
-        [2,8,7, 4,1,9, 6,3,5],
-        [3,4,5, 2,8,6, 1,7,9]
-    ]);
-
-    var veryHardBoard: Board := CreateBoardFromSeq([
-        [0,0,0, 0,0,0, 0,0,0],
-        [0,0,0, 0,0,3, 0,8,5],
-        [0,0,1, 0,2,0, 0,0,0],
-        [0,0,0, 5,0,7, 0,0,0],
-        [0,0,4, 0,0,0, 1,0,0],
-        [0,9,0, 0,0,0, 0,0,0],
-        [5,0,0, 0,0,0, 0,7,3],
-        [0,0,2, 0,1,0, 0,0,0],
-        [0,0,0, 0,4,0, 0,0,9]
-    ]);
-
-    var boards := new Board[2][veryHardBoard, board1];
-    var solvable := Run(boards);
-    for i:= 0 to boards.Length
-        invariant forall i :: 0 <= i < boards.Length ==> is9x9(boards[i])
-    {
-        PrintBoard(boards[i]);
-    }
-}
-method CreateBoardFromSeq(initialState: seq<seq<sValue>>) returns (board: Board)
-    requires |initialState| == 9
-    requires forall i:uint8 :: 0 <= i < |initialState| as uint8 ==> |initialState[i]| == 9
-    ensures is9x9(board)
-    ensures fresh(board)
-{
-
-    board := new sValue[9,9];
-    for i:uint8:= 0 to 9{
-        for j:uint8:= 0 to 9 {
-            board[i,j] := initialState[i][j];
-        }
-        
-    }
-}
-predicate isSValue(val: uint8){
-    0<=val<=9
-}
-method PrintBoard(board: Board)
-    requires is9x9(board)
-{
-    for r := 0 to 9 {
-        if r % 3 == 0 { print "-------------------------\n"; }
-        for c := 0 to 9 {
-        if c % 3 == 0 { print "| "; }
-        if board[r, c] == 0 { print ". "; } else { print board[r, c], " "; }
-        }
-        print "|\n";
-    }
-    print "-------------------------\n";
-}
-
 module Datatypes {
-    // A newtype that maps to C#'s 8-bit sbyte (System.sbyte).
+    newtype {:nativeType "uint"} uint32 = x: int | 0 <= x < 4_294_967_296
     newtype {:nativeType "byte"} uint8 = x: int | 0 <= x < 256
     newtype {:nativeType "byte"} sValue = x: int | 0 <= x <= 9 
     datatype Option<T> = None | Some(value: T)
@@ -79,19 +11,19 @@ module SudokuSolver{
     method Run(boards: array<Board>) returns(solvable: array<bool>)
         modifies boards[..]
         requires forall i :: 0 <= i < boards.Length ==> is9x9(boards[i])
+        requires boards.Length < 4_294_967_296
         ensures boards.Length == solvable.Length
         ensures forall i :: 0 <= i < boards.Length ==> is9x9(boards[i])
     {
         solvable := new bool[boards.Length];
-        for i:=0 to boards.Length
-            invariant forall j :: 0 <= j < boards.Length ==> is9x9(boards[j])
-            invariant forall j :: i <= j < boards.Length ==> boards[j] == old(boards[j])
+        for i:uint32:=0 to boards.Length as uint32
+            invariant forall j:uint32 :: 0 <= j < boards.Length as uint32 ==> is9x9(boards[j])
+            invariant forall j:uint32 :: i <= j < boards.Length as uint32 ==> boards[j] == old(boards[j])
         {
             var result:= Solve(boards[i]);
             solvable[i] := result.Some?;
         }
     }
-
     method Solve(board: Board) returns(result: Option<Board>)
         modifies board
         requires is9x9(board)
@@ -100,7 +32,8 @@ module SudokuSolver{
         {
             return None;
         }
-        if (!isValidBoard(board))
+        var isValid := isValidBoardMethod(board);
+        if (!isValid)
         {
             return None;
         }
@@ -128,7 +61,8 @@ module SudokuSolver{
             invariant forall r':uint8, c':uint8 :: 0 <= r' < 9 && 0 <= c' < 9 ==> board[r',c'] == old(board[r',c'])
             invariant EmptySlotCount(board) == old(EmptySlotCount(board))
         {
-            if (isValidDigit(board, r, c, digit as sValue)){
+            var isValid := isValidDigitMethod(board, r, c, digit as sValue);
+            if (isValid){
                 changeToSValue(board, r,c, digit as sValue);
                 var recursiveResult := Solving(board);
                 if(recursiveResult.Some?)
@@ -142,6 +76,27 @@ module SudokuSolver{
         return None;
     }
 
+    ghost method ghost_copy(board:Board) returns (boardCopy:Board)
+        requires is9x9(board)
+        ensures is9x9(boardCopy)
+        ensures forall r:uint8, c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> board[r,c] == boardCopy[r,c]
+        ensures EmptySlotCount(board) == EmptySlotCount(boardCopy)
+        ensures board != boardCopy
+    {
+        boardCopy := new sValue[9,9]((r, c) reads board requires 0 <= r < 9 && 0 <= c < 9 => board[r, c]);
+        lemma_boardsEqualImpliesEmptySlotCountEqual(board, boardCopy);
+    }
+    lemma lemma_boardsEqualImpliesEmptySlotCountEqual(b1: Board, b2: Board)
+        requires is9x9(b1) && is9x9(b2)
+        requires forall r,c :: 0 <= r < 9 && 0 <= c < 9 ==> b1[r,c] == b2[r,c]
+        ensures EmptySlotCount(b1) == EmptySlotCount(b2)
+    {
+        assert BoardsEqualUpTo(b1, b2, 8, 8);
+        lemma_EmptySlotCountRecursiveSameUpTo(b1, b2, 8, 8);
+        assert EmptySlotCountRecursiveDownwards(b1, 8, 8) == EmptySlotCountRecursiveDownwards(b2, 8, 8);
+        assert EmptySlotCount(b1) == EmptySlotCountRecursiveDownwards(b1, 8, 8);
+        assert EmptySlotCount(b2) == EmptySlotCountRecursiveDownwards(b2, 8, 8);
+    }
     method copy(board:Board) returns (boardCopy:Board)
         requires is9x9(board)
         ensures is9x9(boardCopy)
@@ -223,28 +178,28 @@ module SudokuSolver{
         ensures forall r:uint8, c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> (r == row && c == column) || old(board[r,c]) == board[r,c]
         ensures EmptySlotCount(board) == old(EmptySlotCount(board)) + 1
     {
-        ghost var board' := copy(board);
+        ghost var board' := ghost_copy(board);
         board[row, column] := 0;
         lemma_updatingBoardIncreasesEmptyCount(board, board', row, column);
     }
 
 
-    method changeToSValue(board: Board, row: uint8, column: uint8, digit: sValue)
+    method changeToSValue(board: Board, r: uint8, c: uint8, digit: sValue)
         modifies board
         requires is9x9(board)
-        requires 0 <= row < 9
-        requires 0 <= column < 9
-        requires board[row, column] == 0
+        requires 0 <= r < 9
+        requires 0 <= c < 9
+        requires board[r, c] == 0
         requires EmptySlotCount(board) > 0
         requires digit != 0
         ensures is9x9(board)
-        ensures board[row, column] == digit
-        ensures forall r:uint8, c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> (r == row && c == column) || old(board[r,c]) == board[r,c]
+        ensures board[r, c] == digit
+        ensures forall r':uint8, c':uint8 :: 0 <= r' < 9 && 0 <= c' < 9 ==> (r' == r && c' == c) || old(board[r',c']) == board[r',c']
         ensures EmptySlotCount(board) == old(EmptySlotCount(board)) - 1
     {
-        ghost var board' := copy(board);
-        board[row, column] := digit;
-        lemma_updatingBoardReducesEmptyCount(board, board', row, column, digit);
+        ghost var board' := ghost_copy(board);
+        board[r, c] := digit;
+        lemma_updatingBoardReducesEmptyCount(board, board', r, c, digit);
     }
 
     lemma lemma_emptyCountIsSplitByCell(board: Board, r: uint8, c: uint8)
@@ -259,7 +214,7 @@ module SudokuSolver{
     }
 
     lemma lemma_updatingBoardIncreasesEmptyCount(board: Board, oldBoard: Board, r: uint8, c: uint8)
-        requires is9x9(board)
+        requires is9x9(board) 
         requires is9x9(oldBoard)
         requires 0 <= r < 9
         requires 0 <= c < 9
@@ -460,15 +415,68 @@ module SudokuSolver{
     {
         board.Length0 == 9 && board.Length1 == 9
     }
+
+
+    method isValidDigitMethod(board: Board, row: uint8, column: uint8, digit: sValue) returns (isValid: bool)
+        requires is9x9(board)
+        requires 0 <= row < 9
+        requires 0 <= column < 9
+        ensures isValid <==> isValidDigit(board, row, column, digit)
+    {
+        if digit == 0 {
+            return true;
+        }
+
+        // Check row
+        for c:uint8 := 0 to 9 
+            invariant forall c' :: 0 <= c' < c ==> c' != column ==> board[row, c'] != digit
+        {
+            if c != column && board[row, c] == digit {
+                return false;
+            }
+        }
+        assert isValidInRow(board, row, column, digit);
+        // Check column
+        for r:uint8 := 0 to 9 
+            invariant forall r' :: 0 <= r' < r ==> r' != row ==> board[r', column] != digit
+        {
+            if r != row && board[r, column] == digit {
+                return false;
+            }
+        }
+        assert isValidInColumn(board,row,column,digit);
+        // Check 3x3 box
+        var box_row := (row / 3) * 3;
+        var box_col := (column / 3) * 3;
+        for r: uint8 := box_row to box_row + 3
+            invariant forall r_prev, c_prev ::
+                box_row <= r_prev < r && box_col <= c_prev < box_col + 3 ==>
+                (r_prev == row && c_prev == column) || board[r_prev, c_prev] != digit
+        {
+            for c:uint8 := box_col to box_col + 3
+                 invariant forall r_prev, c_prev ::
+                    (box_row <= r_prev < r && box_col <= c_prev < box_col + 3) ||
+                    (r_prev == r && box_col <= c_prev < c) ==>
+                    (r_prev == row && c_prev == column) || board[r_prev, c_prev] != digit
+            {
+                if (r != row || c != column) && board[r,c] == digit {
+                    return false;
+                }
+            }
+        }
+        assert isValidIn3x3(board, row, column, digit);
+        return true;
+    }
+
     predicate isValidDigit(board: Board, row: uint8, column: uint8, digit: sValue)
         reads board
         requires is9x9(board)
         requires 0 <= row < 9
         requires 0 <= column < 9
     {
-        validInRow(board, row, column, digit) && validInColumn(board, row, column, digit) && validIn3x3(board, row, column, digit)
+        isValidInRow(board, row, column, digit) && isValidInColumn(board, row, column, digit) && isValidIn3x3(board, row, column, digit)
     }
-    predicate validInRow(board: Board, row: uint8, column: uint8, digit:sValue)
+    predicate isValidInRow(board: Board, row: uint8, column: uint8, digit:sValue)
         reads board
         requires is9x9(board)
         requires 0 <= row < 9
@@ -476,7 +484,7 @@ module SudokuSolver{
         digit == 0 || forall c:uint8 :: 0 <= c < 9 ==> c == column || board[row, c] != digit
     }
         
-    predicate validInColumn(board: Board, row:uint8, column: uint8, digit:sValue)
+    predicate isValidInColumn(board: Board, row:uint8, column: uint8, digit:sValue)
         reads board
         requires is9x9(board)
         requires 0 <= column < 9
@@ -484,7 +492,7 @@ module SudokuSolver{
         digit == 0 || forall r:uint8 :: 0 <= r < 9 ==> r == row || board[r, column] != digit
     }
         
-    predicate validIn3x3(board: Board, row: uint8, column: uint8, digit:sValue)
+    predicate isValidIn3x3(board: Board, row: uint8, column: uint8, digit:sValue)
         reads board
         requires is9x9(board)
         requires 0 <= row < 9
@@ -494,7 +502,24 @@ module SudokuSolver{
         var box_col := (column / 3) * 3;
         digit == 0 || forall r: uint8, c:uint8 :: box_row <= r < box_row + 3 && box_col <= c < box_col + 3 ==> (r == row && c == column) || board[r,c] != digit
     }
-
+    method isValidBoardMethod(board:Board) returns (isValid:bool)
+        requires is9x9(board)
+        ensures isValid <==> isValidBoard(board)
+    {
+        for r:uint8 := 0 to 9
+            invariant forall r', c' :: 0 <= r' < r && 0 <= c' < 9 ==> isValidDigit(board,r',c',board[r',c'])
+        {
+            for c:uint8 := 0 to 9
+                invariant forall r', c' :: (0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> isValidDigit(board,r',c',board[r',c'])
+            {
+                var isValidDigit := isValidDigitMethod(board,r,c,board[r,c]);
+                if(!isValidDigit){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
     predicate isValidBoard(board:Board)
         reads board
         requires is9x9(board)
