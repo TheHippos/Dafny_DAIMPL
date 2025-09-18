@@ -1,0 +1,21 @@
+[package]
+name = "sudoku_benchmark_rust"
+version = "0.1.0"
+edition = "2021"
+
+# This section tells Cargo to create an executable named "sudoku_benchmark_rust"
+# and that its main entry point is the "SudokuByHand.rs" file.
+[[bin]]
+name = "sudoku_benchmark_rust"
+path = "src/SudokuByHand.rs"
+
+[dependencies]
+# This tells your main project to use the "dafny_runtime" library
+# located in the "./runtime" subfolder.
+dafny_runtime = { path = "./runtime" }
+rayon = "1.5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3

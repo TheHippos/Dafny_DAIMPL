@@ -16,16 +16,20 @@ set "SCRIPT_DIR=%~dp0"
 
 :: --- (EDIT THESE VALUES) ---
 :: --- Language Project Directories ---
-set "CSHARP_PROJECT_FOLDER=Sudoku-cs"
+:: set "CSHARP_PROJECT_FOLDER=Sudoku-cs"
 set "RUST_PROJECT_FOLDER=Sudoku-rust"
-set "GO_PROJECT_FOLDER=Sudoku-go"
-set "PYTHON_PROJECT_FOLDER=Sudoku-py"
-set "JAVA_PROJECT_FOLDER=Sudoku-java"
-
+:: set "GO_PROJECT_FOLDER=Sudoku-go"
+:: set "PYTHON_PROJECT_FOLDER=Sudoku-py"
+:: set "JAVA_PROJECT_FOLDER=Sudoku-java"
+set "CSHARP_PROJECT_FOLDER=adfasdf"
+set "GO_PROJECT_FOLDER=asdfasdfasfd"
+set "PYTHON_PROJECT_FOLDER=asdfasdfasdf"
+set "JAVA_PROJECT_FOLDER=asdfasdfa"
 :: --- General Settings ---
 set "PUZZLE_FILENAME=sudoku.csv"
 set "RESULTS_FILENAME=benchmark_results.csv"
 set "PUZZLE_AMOUNTS=1000 5000 10000 25000 50000 100000 200000 500000 1000000"
+:: set "PUZZLE_AMOUNTS=1000 5000"
 
 
 :: --- (DO NOT EDIT BELOW) ---
@@ -79,7 +83,7 @@ if exist "%ABS_GO_PATH%" (
 
 :: --- Java Build (Compiles all .java files) ---
 if exist "%ABS_JAVA_PATH%" (
-    echo Building Java project (compiling .java files)...
+    echo Building Java project ^(compiling .java files^)...
     javac -d "%ABS_JAVA_PATH%" "%ABS_JAVA_PATH%\*.java"
 )
 

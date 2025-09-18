@@ -436,9 +436,9 @@ pub mod SudokuSolver {
     pub use ::dafny_runtime::integer_range;
     pub use ::dafny_runtime::truncate;
     pub use ::std::convert::Into;
-    pub use super::Datatypes::Option;
-    pub use super::Datatypes::Option::Some;
-    pub use super::Datatypes::Option::None;
+    pub use crate::Datatypes::Option;
+    pub use crate::Datatypes::Option::Some;
+    pub use crate::Datatypes::Option::None;
     pub use ::dafny_runtime::DafnyInt;
     pub use ::std::default::Default;
 
