@@ -9,7 +9,7 @@ using System;
 using System.Numerics;
 using System.Collections;
 [assembly: DafnyAssembly.DafnySourceAttribute(@"// dafny 4.11.0.0
-// Command-line arguments: build -t cs Sudoku.dfy
+// Command-line arguments: translate cs Sudoku.dfy -o Sudoku-cs/Sudoku --include-runtime --enforce-determinism
 // Sudoku.dfy
 
 
@@ -28,7 +28,7 @@ module Datatypes {
   type Board = array2<sValue>
 }
 
-module {:extern} SudokuSolver {
+module SudokuSolver {
   method Run(boards: array<Board>) returns (solvable: array<bool>)
     requires forall i: int {:trigger boards[i]} :: 0 <= i < boards.Length ==> is9x9(boards[i])
     requires boards.Length < 4294967296
@@ -37,7 +37,7 @@ module {:extern} SudokuSolver {
     ensures forall i: int {:trigger boards[i]} :: 0 <= i < boards.Length ==> is9x9(boards[i])
     decreases boards
   {
-    solvable := new bool[boards.Length];
+    solvable := new bool[boards.Length] ((i: nat) => false);
     for i: uint32 := 0 to boards.Length as uint32
       invariant forall j: uint32 {:trigger boards[j]} :: 0 <= j < boards.Length as uint32 ==> is9x9(boards[j])
       invariant forall j: uint32 {:trigger old(boards[j])} {:trigger boards[j]} :: i <= j < boards.Length as uint32 ==> boards[j] == old(boards[j])
@@ -126,7 +126,7 @@ module {:extern} SudokuSolver {
     ensures board != boardCopy
     decreases board
   {
-    boardCopy := new sValue[9, 9];
+    boardCopy := new sValue[9, 9] ((i: nat, j: int) => 0);
     for r: uint8 := 0 to 9
       invariant forall i: uint8, j: uint8 {:trigger board[i, j]} {:trigger boardCopy[i, j]} :: 0 <= i < r && 0 <= j < 9 ==> boardCopy[i, j] == board[i, j]
       invariant r > 0 ==> EmptySlotCountRecursiveDownwards(board, r - 1, 8) == EmptySlotCountRecursiveDownwards(boardCopy, r - 1, 8)
@@ -6404,15 +6404,21 @@ namespace SudokuSolver {
     public static bool[] Run(byte[][,] boards)
     {
       bool[] solvable = new bool[0];
+      Func<BigInteger, bool> _init0 = ((System.Func<BigInteger, bool>)((_0_i) => {
+        return false;
+      }));
       bool[] _nw0 = new bool[Dafny.Helpers.ToIntChecked(new BigInteger((boards).Length), "array size exceeds memory limit")];
+      for (var _i0_0 = 0; _i0_0 < new BigInteger(_nw0.Length); _i0_0++) {
+        _nw0[(int)(_i0_0)] = _init0(_i0_0);
+      }
       solvable = _nw0;
       uint _hi0 = (uint)(boards).LongLength;
-      for (uint _0_i = 0U; _0_i < _hi0; _0_i++) {
-        Datatypes._IOption<byte[,]> _1_result;
+      for (uint _1_i = 0U; _1_i < _hi0; _1_i++) {
+        Datatypes._IOption<byte[,]> _2_result;
         Datatypes._IOption<byte[,]> _out0;
-        _out0 = SudokuSolver.__default.Solve((boards)[(int)(_0_i)]);
-        _1_result = _out0;
-        (solvable)[(int)((_0_i))] = (_1_result).is_Some;
+        _out0 = SudokuSolver.__default.Solve((boards)[(int)(_1_i)]);
+        _2_result = _out0;
+        (solvable)[(int)((_1_i))] = (_2_result).is_Some;
       }
       return solvable;
     }
@@ -6477,13 +6483,21 @@ namespace SudokuSolver {
     public static byte[,] copy(byte[,] board)
     {
       byte[,] boardCopy = new byte[0, 0];
+      Func<BigInteger, BigInteger, byte> _init0 = ((System.Func<BigInteger, BigInteger, byte>)((_0_i, _1_j) => {
+        return (byte)(0);
+      }));
       byte[,] _nw0 = new byte[Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit")];
+      for (var _i0_0 = 0; _i0_0 < new BigInteger(_nw0.GetLength(0)); _i0_0++) {
+        for (var _i1_0 = 0; _i1_0 < new BigInteger(_nw0.GetLength(1)); _i1_0++) {
+          _nw0[(int)(_i0_0), (int)(_i1_0)] = _init0(_i0_0, _i1_0);
+        }
+      }
       boardCopy = _nw0;
       byte _hi0 = (byte)(9);
-      for (byte _0_r = (byte)(0); _0_r < _hi0; _0_r++) {
+      for (byte _2_r = (byte)(0); _2_r < _hi0; _2_r++) {
         byte _hi1 = (byte)(9);
-        for (byte _1_c = (byte)(0); _1_c < _hi1; _1_c++) {
-          (boardCopy)[(int)((_0_r)), (int)((_1_c))] = (board)[(int)(_0_r), (int)(_1_c)];
+        for (byte _3_c = (byte)(0); _3_c < _hi1; _3_c++) {
+          (boardCopy)[(int)((_2_r)), (int)((_3_c))] = (board)[(int)(_2_r), (int)(_3_c)];
         }
       }
       return boardCopy;
