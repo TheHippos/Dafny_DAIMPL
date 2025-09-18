@@ -15,7 +15,7 @@ module SudokuSolver{
         ensures boards.Length == solvable.Length
         ensures forall i :: 0 <= i < boards.Length ==> is9x9(boards[i])
     {
-        solvable := new bool[boards.Length];
+        solvable := new bool[boards.Length](i => false);
         for i:uint32:=0 to boards.Length as uint32
             invariant forall j:uint32 :: 0 <= j < boards.Length as uint32 ==> is9x9(boards[j])
             invariant forall j:uint32 :: i <= j < boards.Length as uint32 ==> boards[j] == old(boards[j])
@@ -72,7 +72,6 @@ module SudokuSolver{
                 changeToZero(board, r,c);
             }
         }
-        
         return None;
     }
 
@@ -104,7 +103,7 @@ module SudokuSolver{
         ensures EmptySlotCount(board) == EmptySlotCount(boardCopy)
         ensures board != boardCopy
     {
-        boardCopy := new sValue[9,9];
+        boardCopy := new sValue[9,9]((i,j) => 0);
         for r:= 0 to 9
             invariant forall i:uint8, j:uint8 :: 0 <= i < r && 0 <= j < 9 ==> boardCopy[i,j] == board[i,j]
             invariant r > 0 ==> EmptySlotCountRecursiveDownwards(board, r - 1, 8) == EmptySlotCountRecursiveDownwards(boardCopy, r-1, 8)
@@ -426,25 +425,18 @@ module SudokuSolver{
         if digit == 0 {
             return true;
         }
-
-        // Check row
-        for c:uint8 := 0 to 9 
-            invariant forall c' :: 0 <= c' < c ==> c' != column ==> board[row, c'] != digit
+        // Check Row and Column
+        for i:uint8 := 0 to 9 
+            invariant forall c' :: 0 <= c' < i ==> c' != column ==> board[row, c'] != digit
+            invariant forall r' :: 0 <= r' < i ==> r' != row ==> board[r', column] != digit
         {
-            if c != column && board[row, c] == digit {
+            if i != column && board[row, i] == digit {
+                return false;
+            }
+            if i != row && board[i, column] == digit {
                 return false;
             }
         }
-        assert isValidInRow(board, row, column, digit);
-        // Check column
-        for r:uint8 := 0 to 9 
-            invariant forall r' :: 0 <= r' < r ==> r' != row ==> board[r', column] != digit
-        {
-            if r != row && board[r, column] == digit {
-                return false;
-            }
-        }
-        assert isValidInColumn(board,row,column,digit);
         // Check 3x3 box
         var box_row := (row / 3) * 3;
         var box_col := (column / 3) * 3;
@@ -464,7 +456,6 @@ module SudokuSolver{
                 }
             }
         }
-        assert isValidIn3x3(board, row, column, digit);
         return true;
     }
 

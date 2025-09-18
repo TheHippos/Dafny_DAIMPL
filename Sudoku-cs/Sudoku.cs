@@ -9,7 +9,7 @@ using System;
 using System.Numerics;
 using System.Collections;
 [assembly: DafnyAssembly.DafnySourceAttribute(@"// dafny 4.11.0.0
-// Command-line arguments: build -t cs Sudoku.dfy --allow-warnings
+// Command-line arguments: build -t cs Sudoku.dfy
 // Sudoku.dfy
 
 
@@ -28,7 +28,7 @@ module Datatypes {
   type Board = array2<sValue>
 }
 
-module SudokuSolver {
+module {:extern} SudokuSolver {
   method Run(boards: array<Board>) returns (solvable: array<bool>)
     requires forall i: int {:trigger boards[i]} :: 0 <= i < boards.Length ==> is9x9(boards[i])
     requires boards.Length < 4294967296
@@ -467,22 +467,17 @@ module SudokuSolver {
     if digit == 0 {
       return true;
     }
-    for c: uint8 := 0 to 9
-      invariant forall c': uint8 {:trigger board[row, c']} :: 0 <= c' < c ==> c' != column ==> board[row, c'] != digit
+    for i: uint8 := 0 to 9
+      invariant forall c': uint8 {:trigger board[row, c']} :: 0 <= c' < i ==> c' != column ==> board[row, c'] != digit
+      invariant forall r': uint8 {:trigger board[r', column]} :: 0 <= r' < i ==> r' != row ==> board[r', column] != digit
     {
-      if c != column && board[row, c] == digit {
+      if i != column && board[row, i] == digit {
+        return false;
+      }
+      if i != row && board[i, column] == digit {
         return false;
       }
     }
-    assert isValidInRow(board, row, column, digit);
-    for r: uint8 := 0 to 9
-      invariant forall r': uint8 {:trigger board[r', column]} :: 0 <= r' < r ==> r' != row ==> board[r', column] != digit
-    {
-      if r != row && board[r, column] == digit {
-        return false;
-      }
-    }
-    assert isValidInColumn(board, row, column, digit);
     var box_row := row / 3 * 3;
     var box_col := column / 3 * 3;
     for r: uint8 := box_row to box_row + 3
@@ -496,7 +491,6 @@ module SudokuSolver {
         }
       }
     }
-    assert isValidIn3x3(board, row, column, digit);
     return true;
   }
 
@@ -6625,28 +6619,25 @@ namespace SudokuSolver {
         return isValid;
       }
       byte _hi0 = (byte)(9);
-      for (byte _0_c = (byte)(0); _0_c < _hi0; _0_c++) {
-        if (((_0_c) != (column)) && (((board)[(int)(row), (int)(_0_c)]) == (digit))) {
+      for (byte _0_i = (byte)(0); _0_i < _hi0; _0_i++) {
+        if (((_0_i) != (column)) && (((board)[(int)(row), (int)(_0_i)]) == (digit))) {
+          isValid = false;
+          return isValid;
+        }
+        if (((_0_i) != (row)) && (((board)[(int)(_0_i), (int)(column)]) == (digit))) {
           isValid = false;
           return isValid;
         }
       }
-      byte _hi1 = (byte)(9);
-      for (byte _1_r = (byte)(0); _1_r < _hi1; _1_r++) {
-        if (((_1_r) != (row)) && (((board)[(int)(_1_r), (int)(column)]) == (digit))) {
-          isValid = false;
-          return isValid;
-        }
-      }
-      byte _2_box__row;
-      _2_box__row = (byte)(((byte)((row) / ((byte)(3)))) * ((byte)(3)));
-      byte _3_box__col;
-      _3_box__col = (byte)(((byte)((column) / ((byte)(3)))) * ((byte)(3)));
-      byte _hi2 = (byte)((_2_box__row) + ((byte)(3)));
-      for (byte _4_r = _2_box__row; _4_r < _hi2; _4_r++) {
-        byte _hi3 = (byte)((_3_box__col) + ((byte)(3)));
-        for (byte _5_c = _3_box__col; _5_c < _hi3; _5_c++) {
-          if ((((_4_r) != (row)) || ((_5_c) != (column))) && (((board)[(int)(_4_r), (int)(_5_c)]) == (digit))) {
+      byte _1_box__row;
+      _1_box__row = (byte)(((byte)((row) / ((byte)(3)))) * ((byte)(3)));
+      byte _2_box__col;
+      _2_box__col = (byte)(((byte)((column) / ((byte)(3)))) * ((byte)(3)));
+      byte _hi1 = (byte)((_1_box__row) + ((byte)(3)));
+      for (byte _3_r = _1_box__row; _3_r < _hi1; _3_r++) {
+        byte _hi2 = (byte)((_2_box__col) + ((byte)(3)));
+        for (byte _4_c = _2_box__col; _4_c < _hi2; _4_c++) {
+          if ((((_3_r) != (row)) || ((_4_c) != (column))) && (((board)[(int)(_3_r), (int)(_4_c)]) == (digit))) {
             isValid = false;
             return isValid;
           }
