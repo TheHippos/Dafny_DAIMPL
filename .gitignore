@@ -5,7 +5,6 @@ obj/
 **/debug
 *.exe
 *.dll
-*.csproj
 *.pdb
 *.json
 *.user
