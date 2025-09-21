@@ -2,13 +2,6 @@
 using System.Diagnostics;
 using Board = byte[,];
 
-public enum PuzzleDifficulty
-{
-    Easy,
-    Medium,
-    Hard
-}
-
 public static class SudokuParser
 {
     private const int GridSize = 9;

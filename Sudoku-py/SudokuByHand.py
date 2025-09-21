@@ -10,11 +10,6 @@ import _dafny
 
 Board = List[List[int]]
 
-class PuzzleDifficulty(Enum):
-    EASY = 0
-    MEDIUM = 1
-    HARD = 2
-
 GRID_SIZE = 9
 TOTAL_CELLS = GRID_SIZE * GRID_SIZE
 

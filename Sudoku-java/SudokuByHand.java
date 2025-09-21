@@ -170,12 +170,6 @@ public class SudokuByHand {
     }
 }
 
-enum PuzzleDifficulty {
-    EASY,
-    MEDIUM,
-    HARD
-}
-
 class SudokuParser {
     private static final int GRID_SIZE = 9;
     private static final int TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
