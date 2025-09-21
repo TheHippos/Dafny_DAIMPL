@@ -9,7 +9,7 @@ using System;
 using System.Numerics;
 using System.Collections;
 [assembly: DafnyAssembly.DafnySourceAttribute(@"// dafny 4.11.0.0
-// Command-line arguments: translate cs Sudoku.dfy -o Sudoku-cs/Sudoku --include-runtime --enforce-determinism
+// Command-line arguments: translate cs D:\Uni\Master2\daimpl\daimplv2\dafny_doodling\Sudoku.dfy -o D:\Uni\Master2\daimpl\daimplv2\dafny_doodling\Sudoku-cs\Sudoku --include-runtime
 // Sudoku.dfy
 
 
@@ -48,8 +48,8 @@ module SudokuSolver {
   }
 
   method Solve(board: Board) returns (result: Option<Board>)
-    requires is9x9(board)
     modifies board
+    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) case None() => !is9x9(board) || !isValidBoard(board) || forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
     decreases board
   {
     if !is9x9(board) {
@@ -59,6 +59,7 @@ module SudokuSolver {
     if !isValid {
       return None;
     }
+    ghost var boardCopy := ghost_copy(board);
     result := Solving(board);
   }
 

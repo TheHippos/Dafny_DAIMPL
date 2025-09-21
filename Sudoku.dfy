@@ -26,7 +26,9 @@ module SudokuSolver{
     }
     method Solve(board: Board) returns(result: Option<Board>)
         modifies board
-        requires is9x9(board)
+        ensures match result
+            case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard)
+            case None => !is9x9(board) || !isValidBoard(board) || (forall r: uint8 ,c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> board[r,c] == old(board[r,c]) && EmptySlotCount(board) == old(EmptySlotCount(board)))
     {
         if (!is9x9(board))
         {
@@ -37,6 +39,7 @@ module SudokuSolver{
         {
             return None;
         }
+        ghost var boardCopy := ghost_copy(board);
         result:= Solving(board);
     }
 

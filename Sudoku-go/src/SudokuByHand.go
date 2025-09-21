@@ -1,15 +1,15 @@
 package main
 
 import (
+	dafnySolver "SudokuSolver"
 	"bufio"
+	"dafny"
 	"fmt"
 	"log"
 	"os"
 	"sync"
 	"time"
 	"unicode"
-	dafnySolver "SudokuSolver"
-	"dafny"
 )
 
 const (
@@ -66,7 +66,6 @@ func loadPuzzlesFromFile(filePath string) ([]Board, []Board, error) {
 	}()
 	collectionWg.Wait()
 
-
 	if err := scanner.Err(); err != nil {
 		return nil, nil, fmt.Errorf("error reading file: %w", err)
 	}
@@ -104,11 +103,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load puzzles: %v", err)
 	}
-	
+
 	if boards1 == nil || boards2 == nil {
-        fmt.Println("Something went wrong when reading the file, results are null")
-        return
-    }
+		fmt.Println("Something went wrong when reading the file, results are null")
+		return
+	}
 
 	test(boards1, boards2)
 }
