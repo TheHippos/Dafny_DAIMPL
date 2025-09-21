@@ -13,3 +13,4 @@ obj/
 *.tmp
 *.lock
 *.dtr
+__pycache__/
