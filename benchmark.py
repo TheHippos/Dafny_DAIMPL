@@ -6,6 +6,7 @@ import sys
 import os
 import shutil
 import argparse
+import csv
 
 # --- Project Folder Configuration ---
 CSHARP_PROJECT_FOLDER = "Sudoku-cs"
@@ -84,6 +85,36 @@ def main():
         input("Press ENTER to exit...")
         return
 
+    # Check and clean sudoku.csv if it contains multiple columns
+    print(f"\n--- Checking puzzle file format ({PUZZLE_FILENAME}) ---")
+    is_cleaned = True
+    try:
+        with abs_puzzle_file.open("r", encoding="utf-8") as f:
+            first_line = f.readline()
+            if "," in first_line:
+                is_cleaned = False
+
+        if not is_cleaned:
+            print(" Puzzle file appears to have multiple columns. Cleaning to keep only the first column...")
+            # Read and process rows
+            with abs_puzzle_file.open(newline="", encoding="utf-8") as infile:
+                reader = csv.reader(infile)
+                next(reader)  # skip header
+                rows = [[row[0]] for row in reader]  # keep only first column
+
+            # Overwrite the same file
+            with abs_puzzle_file.open("w", newline="", encoding="utf-8") as outfile:
+                writer = csv.writer(outfile)
+                writer.writerows(rows)
+            print(" Puzzle file has been cleaned.")
+        else:
+            print(" Puzzle file is already in the correct format (single column).")
+
+    except (IOError, csv.Error) as e:
+        print(f"ERROR: Could not read or process puzzle file: {e}")
+        input("Press ENTER to exit...")
+        return
+
     # Conditionally check for Dafny source only if we are translating
     if args.clean_translate and not abs_dafny_source.exists():
         print(f"ERROR: Dafny source file '{DAFNY_SOURCE_FILE}' not found at '{abs_dafny_source}'.")
@@ -122,7 +153,8 @@ def main():
         # Step 2: Run Dafny Translate (This will recreate the project folders)
         print("\n Translating Dafny source...")
         dafny_commands = {
-            "C#": ["dafny", "translate", "cs", str(abs_dafny_source), "-o", str(abs_csharp_path / "Sudoku"), "--include-runtime"],  # CSharp is special
+            "C#": ["dafny", "translate", "cs", str(abs_dafny_source), "-o", str(abs_csharp_path / "Sudoku"),
+                   "--include-runtime"],  # CSharp is special
             "Go": ["dafny", "translate", "go", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"],
             "Python": ["dafny", "translate", "py", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"],
             "Java": ["dafny", "translate", "java", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"]
@@ -154,7 +186,8 @@ def main():
         try:
             run_command_and_append(["dotnet", "build", "-c", "Release", str(abs_csharp_path)], abs_results_file)
         except subprocess.CalledProcessError as e:
-            print(f"ERROR: Building C# project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
+            print(
+                f"ERROR: Building C# project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
 
     # Go
     if abs_go_path.exists():
@@ -162,9 +195,10 @@ def main():
         out_exe = str(abs_go_path / "sudoku_bench_go.exe")
         try:
             run_command_and_append(["go", "build", "-o", out_exe, str(abs_go_path / "src" / "SudokuByHand.go")],
-                               abs_results_file, env={"GOPATH": str(abs_go_path), "GO111MODULE": "off"})
+                                   abs_results_file, env={"GOPATH": str(abs_go_path), "GO111MODULE": "off"})
         except subprocess.CalledProcessError as e:
-            print(f"ERROR: Building Go project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
+            print(
+                f"ERROR: Building Go project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
 
     # Java (javac)
     if abs_java_path.exists():
@@ -220,7 +254,8 @@ def main():
             try:
                 run_command_and_append([sys.executable, str(python_main), str(temp_puzzle_file)], abs_results_file)
             except subprocess.CalledProcessError as e:
-                print(f"ERROR: Interpreting Python project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
+                print(
+                    f"ERROR: Interpreting Python project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
 
         # --- Java Run ---
         if abs_java_path.exists():
