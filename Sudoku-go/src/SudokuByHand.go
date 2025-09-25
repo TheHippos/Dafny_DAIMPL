@@ -118,8 +118,9 @@ func test(boards1, boards2 []Board) {
 	duration1 := time.Since(start1)
 	fmt.Printf("go_handwritten,%d,%d\n", len(boards1), duration1.Milliseconds())
 
+	dafnyBoards := convertToGoDafnyArrays(boards2)
 	start2 := time.Now()
-	dafnySolver.Companion_Default___.Run(convertToGoDafnyArrays(boards2))
+	dafnySolver.Companion_Default___.Run(dafnyBoards)
 	duration2 := time.Since(start2)
 	fmt.Printf("go_dafny,%d,%d\n", len(boards2), duration2.Milliseconds())
 }

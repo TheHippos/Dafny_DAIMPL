@@ -26,23 +26,60 @@ RESULTS_FILENAME = "benchmark_results.csv"
 
 def run_command_and_append(cmd, results_path, cwd=None, env={}):
     """
-    Runs command (list) and appends stdout+stderr to results_path.
-    Similar to using `>> resultsfile` in batch files.
+    Runs a command, prints its full output (stdout/stderr) to the console,
+    and appends the output to the specified results file.
     """
     print("    running:", " ".join(map(str, cmd)))
-    # Ensure parent exists for results_path
     results_path = Path(results_path)
     results_path.parent.mkdir(parents=True, exist_ok=True)
-    with results_path.open("a", encoding="utf-8", errors="replace") as f:
-        try:
-            # Redirect both stdout and stderr into the file (so we capture all output).
-            # This mirrors batch's redirection behavior in a robust way.
-            subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT, cwd=cwd, text=True, check=False,
-                           env={**os.environ.copy(), **env})
-        except FileNotFoundError:
-            msg = f"# ERROR: command not found: {cmd[0]}\n"
-            print("      Command not found:", cmd[0])
-            f.write(msg)
+
+    try:
+        # Use capture_output=True to get stdout/stderr.
+        # text=True decodes them as text.
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            cwd=cwd,
+            env={**os.environ.copy(), **env}
+        )
+
+        # Combine stdout and stderr to show all output.
+        combined_output = ""
+        if result.stdout:
+            combined_output += result.stdout
+        if result.stderr:
+            combined_output += result.stderr
+
+        # --- Print to Console ---
+        if combined_output.strip():
+            print("      --- Command Output ---")
+            # Indent the output for readability in the console
+            for line in combined_output.strip().split('\n'):
+                print(f"      | {line}")
+            print("      ----------------------")
+
+        if result.returncode != 0:
+            # Use a more visible error message in the console
+            print(f"    ERROR: Command failed with exit code {result.returncode}.")
+
+        # --- Append to File ---
+        with results_path.open("a", encoding="utf-8", errors="replace") as f:
+            # Add a header for context in the log file
+            f.write(f"\n# === Executing: {' '.join(map(str, cmd))} ===\n")
+            f.write(combined_output)
+            if result.returncode != 0:
+                f.write(f"# === Command finished with ERROR code: {result.returncode} ===\n")
+            else:
+                f.write(f"# === Command finished successfully ===\n")
+
+    except FileNotFoundError:
+        error_msg = f"# ERROR: Command not found: {cmd[0]}\n"
+        print(f"      ERROR: Command not found: {cmd[0]}")
+        with results_path.open("a", encoding="utf-8", errors="replace") as f:
+            f.write(error_msg)
 
 
 def main():
@@ -53,6 +90,9 @@ def main():
                         help="Perform cleanup and a fresh Dafny translation before running benchmarks.")
     parser.add_argument("--puzzle-amounts", type=str, default="1000",
                         help="A space-separated string of puzzle counts to run (e.g., '1000 5000 10000').")
+    parser.add_argument("--languages", type=str.lower, default='csharp go python java',
+                        help="A space-separated list of languages to benchmark (e.g., 'csharp python'). "
+                             "If not provided, all available languages are run.")
     args = parser.parse_args()
 
     # Change working dir to script directory (like cd /d "%~dp0")
@@ -121,16 +161,20 @@ def main():
         input("Press ENTER to exit...")
         return
 
+    languages = [x for x in args.languages.split()]
     # --- 0) Cleanup and Dafny Translation ---
     if args.clean_translate:
         print("\n--- Cleaning old project folders and translating Dafny code ---")
 
-        preserve_map = {
-            abs_csharp_path: ["SudokuByHand.cs", "Sudoku.csproj"],
-            abs_go_path: ["src/SudokuByHand.go"],
-            abs_java_path: ["SudokuByHand.java"],
-            abs_python_path: ["SudokuByHand.py"],
-        }
+        preserve_map = {}
+        if not languages or 'csharp' in languages:
+            preserve_map[abs_go_path] = ["SudokuByHand.cs", "Sudoku.csproj"]
+        if not languages or 'go' in languages:
+            preserve_map[abs_go_path] = ["src/SudokuByHand.go"]
+        if not languages or 'java' in languages:
+            preserve_map[abs_go_path] = ["SudokuByHand.java"]
+        if not languages or 'python' in languages:
+            preserve_map[abs_go_path] = ["SudokuByHand.py"]
 
         # Step 1: Move preserved files to TEMP and delete old directories
         print(" Backing up essential files...")
@@ -152,17 +196,20 @@ def main():
 
         # Step 2: Run Dafny Translate (This will recreate the project folders)
         print("\n Translating Dafny source...")
+        # Keys are lowercase to match argparse choices
         dafny_commands = {
-            "C#": ["dafny", "translate", "cs", str(abs_dafny_source), "-o", str(abs_csharp_path / "Sudoku"),
-                   "--include-runtime"],  # CSharp is special
-            "Go": ["dafny", "translate", "go", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"],
-            "Python": ["dafny", "translate", "py", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"],
-            "Java": ["dafny", "translate", "java", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"]
+            "csharp": ["dafny", "translate", "cs", str(abs_dafny_source), "-o", str(abs_csharp_path / "Sudoku"),
+                       "--include-runtime"],
+            "go": ["dafny", "translate", "go", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"],
+            "python": ["dafny", "translate", "py", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"],
+            "java": ["dafny", "translate", "java", str(abs_dafny_source), "-o", "Sudoku", "--include-runtime"]
         }
 
         for lang, cmd in dafny_commands.items():
-            print(f" Translating Dafny to {lang}...")
-            run_command_and_append(cmd, abs_results_file)
+            # Only run translation if no specific languages were chosen, or if this language was chosen
+            if not languages or lang in languages:
+                print(f" Translating Dafny to {lang.capitalize()}...")
+                run_command_and_append(cmd, abs_results_file)
 
         # Step 3: Move preserved files back
         print("\n Restoring essential files...")
@@ -181,38 +228,27 @@ def main():
     # --- 1) Build step (only if project exists) ---
     print("\n--- Building all existing projects ---")
     # C# (dotnet)
-    if abs_csharp_path.exists():
+    if (not languages or 'csharp' in languages) and abs_csharp_path.exists():
         print(" Building C# project...")
-        try:
-            run_command_and_append(["dotnet", "build", "-c", "Release", str(abs_csharp_path)], abs_results_file)
-        except subprocess.CalledProcessError as e:
-            print(
-                f"ERROR: Building C# project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
+        run_command_and_append(["dotnet", "build", "-c", "Release", str(abs_csharp_path)], abs_results_file)
 
     # Go
-    if abs_go_path.exists():
+    if (not languages or 'go' in languages) and abs_go_path.exists():
         print(" Building Go project...")
         out_exe = str(abs_go_path / "sudoku_bench_go.exe")
-        try:
-            run_command_and_append(["go", "build", "-o", out_exe, str(abs_go_path / "src" / "SudokuByHand.go")],
-                                   abs_results_file, env={"GOPATH": str(abs_go_path), "GO111MODULE": "off"})
-        except subprocess.CalledProcessError as e:
-            print(
-                f"ERROR: Building Go project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
+        run_command_and_append(["go", "build", "-o", out_exe, str(abs_go_path / "src" / "SudokuByHand.go")],
+                               abs_results_file, env={"GOPATH": str(abs_go_path), "GO111MODULE": "off"})
 
     # Java (javac)
-    if abs_java_path.exists():
+    if (not languages or 'java' in languages) and abs_java_path.exists():
         java_files = list(abs_java_path.rglob("*.java"))
         if java_files:
             print(" Building Java project (compiling .java files)...")
             cmd = ["javac", "-d", str(abs_java_path)] + [str(p) for p in java_files]
-            try:
-                run_command_and_append(cmd, abs_results_file)
-            except subprocess.CalledProcessError as e:
-                print(
-                    f"ERROR: Building Java project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
+            run_command_and_append(cmd, abs_results_file)
         else:
             print(" Java folder exists but no .java files found; skipping javac.")
+
     # --- 2) Setup and main loop ---
     print("\n--- Starting Benchmarks ---")
     # Create results file and header (truncate)
@@ -234,7 +270,7 @@ def main():
                 dst.write(line)
 
         # --- C# Run ---
-        if abs_csharp_path.exists():
+        if (not languages or 'csharp' in languages) and abs_csharp_path.exists():
             print(" Running C# benchmark...")
             cmd = ["dotnet", "run", "--configuration", "Release", "--project", str(abs_csharp_path), "--",
                    str(temp_puzzle_file)]
@@ -242,23 +278,19 @@ def main():
 
         # --- Go Run ---
         go_exe = abs_go_path / "sudoku_bench_go.exe"
-        if go_exe.exists():
+        if (not languages or 'go' in languages) and go_exe.exists():
             print(" Running Go benchmark...")
             run_command_and_append([str(go_exe), str(temp_puzzle_file)], abs_results_file)
 
         # --- Python Run ---
         python_main = abs_python_path / "SudokuByHand.py"
-        if python_main.exists():
+        if (not languages or 'python' in languages) and python_main.exists():
             print(" Running Python benchmark...")
             # Use the same Python interpreter that runs this script
-            try:
-                run_command_and_append([sys.executable, str(python_main), str(temp_puzzle_file)], abs_results_file)
-            except subprocess.CalledProcessError as e:
-                print(
-                    f"ERROR: Interpreting Python project failed with return code {e.returncode}. Try rerunning with --clean-translate.")
+            run_command_and_append([sys.executable, str(python_main), str(temp_puzzle_file)], abs_results_file)
 
         # --- Java Run ---
-        if abs_java_path.exists():
+        if (not languages or 'java' in languages) and abs_java_path.exists():
             print(" Running Java benchmark...")
             # Build classpath: folder + folder/* (match original .bat which used jar wildcard)
             classpath = f"{abs_java_path}{os.pathsep}{abs_java_path}{os.sep}*"
@@ -279,4 +311,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
