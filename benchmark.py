@@ -68,12 +68,7 @@ def run_command_and_append(cmd, results_path, cwd=None, env={}):
         # --- Append to File ---
         with results_path.open("a", encoding="utf-8", errors="replace") as f:
             # Add a header for context in the log file
-            f.write(f"\n# === Executing: {' '.join(map(str, cmd))} ===\n")
             f.write(combined_output)
-            if result.returncode != 0:
-                f.write(f"# === Command finished with ERROR code: {result.returncode} ===\n")
-            else:
-                f.write(f"# === Command finished successfully ===\n")
 
     except FileNotFoundError:
         error_msg = f"# ERROR: Command not found: {cmd[0]}\n"
@@ -93,6 +88,8 @@ def main():
     parser.add_argument("--languages", type=str.lower, default='csharp go python java',
                         help="A space-separated list of languages to benchmark (e.g., 'csharp python'). "
                              "If not provided, all available languages are run.")
+    parser.add_argument("--runs", type=int, default=1,
+                        help="The number of runs.")
     args = parser.parse_args()
 
     # Change working dir to script directory (like cd /d "%~dp0")
@@ -175,6 +172,7 @@ def main():
             preserve_map[abs_java_path] = ["SudokuByHand.java"]
         if not languages or 'python' in languages:
             preserve_map[abs_python_path] = ["SudokuByHand.py"]
+
         # Step 1: Move preserved files to TEMP and delete old directories
         print(" Backing up essential files...")
         backup_dir = local_temp_dir / "backup"
@@ -255,45 +253,47 @@ def main():
         f.write("language,puzzle_count,time_ms\n")
 
     amounts = [int(x) for x in args.puzzle_amounts.split() if x.strip().isdigit()]
+    run_count = args.runs
+    for run in range(run_count):
+        print(f"\n--- Run #{run + 1}/{run_count} ---")
+        for amount in amounts:
+            print(f"\n--- Testing with {amount} puzzles ---")
+            # Create the temporary puzzle file with first `amount` lines
+            print(" Creating temporary puzzle file...")
+            # Efficient streaming copy of first N lines
+            with abs_puzzle_file.open("r", encoding="utf-8", errors="replace") as src, \
+                    temp_puzzle_file.open("w", encoding="utf-8", errors="replace") as dst:
+                for i, line in enumerate(src):
+                    if i >= amount:
+                        break
+                    dst.write(line)
 
-    for amount in amounts:
-        print(f"\n--- Testing with {amount} puzzles ---")
-        # Create the temporary puzzle file with first `amount` lines
-        print(" Creating temporary puzzle file...")
-        # Efficient streaming copy of first N lines
-        with abs_puzzle_file.open("r", encoding="utf-8", errors="replace") as src, \
-                temp_puzzle_file.open("w", encoding="utf-8", errors="replace") as dst:
-            for i, line in enumerate(src):
-                if i >= amount:
-                    break
-                dst.write(line)
+            # --- C# Run ---
+            if (not languages or 'csharp' in languages) and abs_csharp_path.exists():
+                print(" Running C# benchmark...")
+                cmd = ["dotnet", "run", "--configuration", "Release", "--project", str(abs_csharp_path), "--",
+                       str(temp_puzzle_file)]
+                run_command_and_append(cmd, abs_results_file)
 
-        # --- C# Run ---
-        if (not languages or 'csharp' in languages) and abs_csharp_path.exists():
-            print(" Running C# benchmark...")
-            cmd = ["dotnet", "run", "--configuration", "Release", "--project", str(abs_csharp_path), "--",
-                   str(temp_puzzle_file)]
-            run_command_and_append(cmd, abs_results_file)
+            # --- Go Run ---
+            go_exe = abs_go_path / "sudoku_bench_go.exe"
+            if (not languages or 'go' in languages) and go_exe.exists():
+                print(" Running Go benchmark...")
+                run_command_and_append([str(go_exe), str(temp_puzzle_file)], abs_results_file)
 
-        # --- Go Run ---
-        go_exe = abs_go_path / "sudoku_bench_go.exe"
-        if (not languages or 'go' in languages) and go_exe.exists():
-            print(" Running Go benchmark...")
-            run_command_and_append([str(go_exe), str(temp_puzzle_file)], abs_results_file)
+            # --- Python Run ---
+            python_main = abs_python_path / "SudokuByHand.py"
+            if (not languages or 'python' in languages) and python_main.exists():
+                print(" Running Python benchmark...")
+                # Use the same Python interpreter that runs this script
+                run_command_and_append([sys.executable, str(python_main), str(temp_puzzle_file)], abs_results_file)
 
-        # --- Python Run ---
-        python_main = abs_python_path / "SudokuByHand.py"
-        if (not languages or 'python' in languages) and python_main.exists():
-            print(" Running Python benchmark...")
-            # Use the same Python interpreter that runs this script
-            run_command_and_append([sys.executable, str(python_main), str(temp_puzzle_file)], abs_results_file)
-
-        # --- Java Run ---
-        if (not languages or 'java' in languages) and abs_java_path.exists():
-            print(" Running Java benchmark...")
-            # Build classpath: folder + folder/* (match original .bat which used jar wildcard)
-            classpath = f"{abs_java_path}{os.pathsep}{abs_java_path}{os.sep}*"
-            run_command_and_append(["java", "-cp", classpath, "SudokuByHand", str(temp_puzzle_file)], abs_results_file)
+            # --- Java Run ---
+            if (not languages or 'java' in languages) and abs_java_path.exists():
+                print(" Running Java benchmark...")
+                # Build classpath: folder + folder/* (match original .bat which used jar wildcard)
+                classpath = f"{abs_java_path}{os.pathsep}{abs_java_path}{os.sep}*"
+                run_command_and_append(["java", "-cp", classpath, "SudokuByHand", str(temp_puzzle_file)], abs_results_file)
 
     # --- 3) Cleanup ---
     print("\n--- Benchmark Complete ---")
