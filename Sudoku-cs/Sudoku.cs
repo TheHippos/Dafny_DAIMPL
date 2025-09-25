@@ -69,7 +69,7 @@ module SudokuSolver {
     requires isValidBoard(board)
     requires hasOnlyValidDigits(board)
     modifies board
-    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) && hasOnlyValidDigits(board) case None() => forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
+    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) && hasOnlyValidDigits(resultBoard) case None() => forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
     decreases EmptySlotCount(board)
   {
     var empty := FindEmptySlot(board);
