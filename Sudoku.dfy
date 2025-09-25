@@ -54,7 +54,7 @@ module SudokuSolver{
         requires isValidBoard(board)
         requires hasOnlyValidDigits(board)
         ensures match result
-            case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) && hasOnlyValidDigits(board)
+            case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) && hasOnlyValidDigits(resultBoard)
             case None => forall r: uint8 ,c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> board[r,c] == old(board[r,c]) && EmptySlotCount(board) == old(EmptySlotCount(board))
         decreases EmptySlotCount(board)
     {
