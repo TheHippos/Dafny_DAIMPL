@@ -1,0 +1,95 @@
+% LaTeX code generated from Python analysis script
+% You may need the `booktabs` and `siunitx` packages.
+
+
+% --- Table 1: Detailed Performance Comparison ---
+\begin{table*}[ht]
+\caption{Performance Comparison Across Languages and Implementations (ms).}
+\label{tab:perf_data}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Language & \multicolumn{2}{c}{csharp} & \multicolumn{2}{c}{go} & \multicolumn{2}{c}{python} & \multicolumn{2}{c}{java} \\
+Variant & handwritten & dafny & handwritten & dafny & handwritten & dafny & handwritten & dafny \\
+Workload &  &  &  &  &  &  &  &  \\
+\midrule
+1000 & 252 & 281 & 68 & 1033 & 4136 & 21208 & 101 & 131 \\
+5000 & 664 & 731 & 410 & 6391 & 26074 & 130366 & 536 & 609 \\
+10000 & 1022 & 1178 & 749 & 11663 & 48023 & 241353 & 932 & 1093 \\
+50000 & 4118 & 4983 & 3444 & 53485 & 213861 & 1094654 & 4256 & 4734 \\
+100000 & 8141 & 9498 & 6953 & 107792 & 429578 & 2197481 & 8536 & 9505 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% --- Table 2: Welch's ANOVA Results ---
+\begin{table}[!htbp]
+\caption{Welch's ANOVA for Overall Group Differences on Performance.}
+\label{tab:welch_anova}
+\begin{tabular}{lrrrrr}
+\toprule
+Source & df1 & df2 & F & p-value & $\eta_p^2$ \\
+\midrule
+group & 7 & 116.4509 & 10.8453 & 0.0000 & 0.3939 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% --- Table 3: Key Post-Hoc Comparisons ---
+\begin{table*}[ht][!htbp]
+\caption{Games-Howell Post-Hoc Test Results for Dafny vs. Handwritten Variants.}
+\label{tab:key_comparisons}
+\begin{tabular}{llrrr}
+\toprule
+Group 1 & Group 2 & Mean Diff. & p-value & Hedges' g \\
+\midrule
+csharp dafny & csharp handwritten & 481.9444 & 0.9985 & 0.1449 \\
+go dafny & go handwritten & 32837.3889 & 0.0007 & 1.1237 \\
+java dafny & java handwritten & 342.2286 & 0.9999 & 0.0988 \\
+python dafny & python handwritten & 592678.2286 & 0.0046 & 0.9740 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% --- Table 4: Full Post-Hoc Test Results (for Appendix) ---
+\begin{table*}[ht][!htbp]
+\caption{Full Pairwise Games-Howell Post-Hoc Test Results.}
+\label{tab:full_comparisons}
+\small
+\begin{tabular}{llrrrrrrrr}
+\toprule
+A & B & mean(A) & mean(B) & diff & se & T & df & pval & hedges \\
+\midrule
+csharp dafny & csharp handwritten & 3249.3611 & 2767.4167 & 481.9444 & 775.3867 & 0.6216 & 68.2475 & 0.9985 & 0.1449 \\
+csharp dafny & go dafny & 3249.3611 & 35099.5833 & -31850.2222 & 6825.2017 & -4.6666 & 35.5280 & 0.0010 & -1.0881 \\
+csharp dafny & go handwritten & 3249.3611 & 2262.1944 & 987.1667 & 735.6281 & 1.3419 & 64.6024 & 0.8791 & 0.3129 \\
+csharp dafny & java dafny & 3249.3611 & 3214.4857 & 34.8754 & 847.1267 & 0.0412 & 68.8759 & 1.0000 & 0.0097 \\
+csharp dafny & java handwritten & 3249.3611 & 2872.2571 & 377.1040 & 806.1415 & 0.4678 & 68.7613 & 0.9998 & 0.1097 \\
+csharp dafny & python dafny & 3249.3611 & 737012.5714 & -733763.2103 & 141178.6614 & -5.1974 & 34.0012 & 0.0002 & -1.2379 \\
+csharp dafny & python handwritten & 3249.3611 & 144334.3429 & -141084.9817 & 27569.6457 & -5.1174 & 34.0312 & 0.0003 & -1.2188 \\
+csharp handwritten & go dafny & 2767.4167 & 35099.5833 & -32332.1667 & 6818.1401 & -4.7421 & 35.3822 & 0.0008 & -1.1057 \\
+csharp handwritten & go handwritten & 2767.4167 & 2262.1944 & 505.2222 & 666.9370 & 0.7575 & 68.7460 & 0.9947 & 0.1766 \\
+csharp handwritten & java dafny & 2767.4167 & 3214.4857 & -447.0690 & 788.2132 & -0.5672 & 66.2983 & 0.9991 & -0.1335 \\
+csharp handwritten & java handwritten & 2767.4167 & 2872.2571 & -104.8405 & 743.9896 & -0.1409 & 68.2843 & 1.0000 & -0.0331 \\
+csharp handwritten & python dafny & 2767.4167 & 737012.5714 & -734245.1548 & 141178.3201 & -5.2008 & 34.0009 & 0.0002 & -1.2387 \\
+csharp handwritten & python handwritten & 2767.4167 & 144334.3429 & -141566.9262 & 27567.8984 & -5.1352 & 34.0226 & 0.0003 & -1.2230 \\
+go dafny & go handwritten & 35099.5833 & 2262.1944 & 32837.3889 & 6813.7331 & 4.8193 & 35.2912 & 0.0007 & 1.1237 \\
+go dafny & java dafny & 35099.5833 & 3214.4857 & 31885.0976 & 6826.6708 & 4.6707 & 35.5583 & 0.0010 & 1.0813 \\
+go dafny & java handwritten & 35099.5833 & 2872.2571 & 32227.3262 & 6821.7061 & 4.7242 & 35.4558 & 0.0009 & 1.0937 \\
+go dafny & python dafny & 35099.5833 & 737012.5714 & -701912.9881 & 141341.0776 & -4.9661 & 34.1577 & 0.0005 & -1.1827 \\
+go dafny & python handwritten & 35099.5833 & 144334.3429 & -109234.7595 & 28389.6315 & -3.8477 & 38.1270 & 0.0095 & -0.9149 \\
+go handwritten & java dafny & 2262.1944 & 3214.4857 & -952.2913 & 749.1356 & -1.2712 & 62.2614 & 0.9059 & -0.2998 \\
+go handwritten & java handwritten & 2262.1944 & 2872.2571 & -610.0627 & 702.4561 & -0.8685 & 65.3936 & 0.9879 & -0.2045 \\
+go handwritten & python dafny & 2262.1944 & 737012.5714 & -734750.3770 & 141178.1074 & -5.2044 & 34.0007 & 0.0002 & -1.2395 \\
+go handwritten & python handwritten & 2262.1944 & 144334.3429 & -142072.1484 & 27566.8088 & -5.1537 & 34.0172 & 0.0003 & -1.2275 \\
+java dafny & java handwritten & 3214.4857 & 2872.2571 & 342.2286 & 818.4862 & 0.4181 & 67.3114 & 0.9999 & 0.0988 \\
+java dafny & python dafny & 3214.4857 & 737012.5714 & -733798.0857 & 141178.7324 & -5.1977 & 34.0013 & 0.0002 & -1.2287 \\
+java dafny & python handwritten & 3214.4857 & 144334.3429 & -141119.8571 & 27570.0094 & -5.1186 & 34.0330 & 0.0003 & -1.2100 \\
+java handwritten & python dafny & 2872.2571 & 737012.5714 & -734140.3143 & 141178.4924 & -5.2001 & 34.0010 & 0.0002 & -1.2293 \\
+java handwritten & python handwritten & 2872.2571 & 144334.3429 & -141462.0857 & 27568.7805 & -5.1312 & 34.0269 & 0.0003 & -1.2130 \\
+python dafny & python handwritten & 737012.5714 & 144334.3429 & 592678.2286 & 143842.9776 & 4.1203 & 36.5883 & 0.0046 & 0.9740 \\
+\bottomrule
+\end{tabular}
+\end{table*}

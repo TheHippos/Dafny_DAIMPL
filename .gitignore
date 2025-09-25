@@ -8,9 +8,10 @@ obj/
 *.pdb
 *.json
 *.user
-*.csv
+sudoku.csv
 *.sln
 *.tmp
 *.lock
 *.dtr
 __pycache__/
+TEMP/
