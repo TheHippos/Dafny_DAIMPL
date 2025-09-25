@@ -38,17 +38,25 @@ public class __default {
         result = Datatypes.Option.<dafny.Array2<java.lang.Byte>>create_None(dafny.Array2.<java.lang.Byte>_typeDescriptor());
         return result;
       }
-      boolean _0_isValid;
+      boolean _0_hasOnlyValidDigits;
       boolean _out0;
-      _out0 = __default.isValidBoardMethod(board);
-      _0_isValid = _out0;
-      if (!(_0_isValid)) {
+      _out0 = __default.hasOnlyValidDigitsMethod(board);
+      _0_hasOnlyValidDigits = _out0;
+      if (!(_0_hasOnlyValidDigits)) {
         result = Datatypes.Option.<dafny.Array2<java.lang.Byte>>create_None(dafny.Array2.<java.lang.Byte>_typeDescriptor());
         return result;
       }
-      Datatypes.Option<dafny.Array2<java.lang.Byte>> _out1;
-      _out1 = __default.Solving(board);
-      result = _out1;
+      boolean _1_isValid;
+      boolean _out1;
+      _out1 = __default.isValidBoardMethod(board);
+      _1_isValid = _out1;
+      if (!(_1_isValid)) {
+        result = Datatypes.Option.<dafny.Array2<java.lang.Byte>>create_None(dafny.Array2.<java.lang.Byte>_typeDescriptor());
+        return result;
+      }
+      Datatypes.Option<dafny.Array2<java.lang.Byte>> _out2;
+      _out2 = __default.Solving(board);
+      result = _out2;
     }
     return result;
   }
@@ -398,6 +406,41 @@ public class __default {
         return true;
       }
     }));}).apply(board);
+  }
+  public static boolean hasOnlyValidDigits(dafny.Array2<java.lang.Byte> board) {
+    return ((java.util.function.Function<dafny.Array2<java.lang.Byte>, Boolean>)(_0_board) -> {return dafny.Helpers.Quantifier(Datatypes.uint8.IntegerRange(java.math.BigInteger.ZERO, java.math.BigInteger.valueOf(9L)), true, ((_forall_var_0_boxed0) -> {
+      byte _forall_var_0 = ((byte)(java.lang.Object)(_forall_var_0_boxed0));
+      byte _1_r = (byte)_forall_var_0;
+      if (true) {
+        return dafny.Helpers.Quantifier(Datatypes.uint8.IntegerRange(java.math.BigInteger.ZERO, java.math.BigInteger.valueOf(9L)), true, ((_forall_var_1_boxed0) -> {
+          byte _forall_var_1 = ((byte)(java.lang.Object)(_forall_var_1_boxed0));
+          byte _2_c = (byte)_forall_var_1;
+          if (true) {
+            return !(((((_1_r) == 0 ? 0 : 1) != -1) && (java.lang.Integer.compareUnsigned(_1_r, (byte) 9) < 0)) && ((((_2_c) == 0 ? 0 : 1) != -1) && (java.lang.Integer.compareUnsigned(_2_c, (byte) 9) < 0))) || (((((byte)((byte[][]) (((_0_board)).elmts))[(dafny.Helpers.unsignedToInt(_1_r))][(dafny.Helpers.unsignedToInt(_2_c))]) == 0 ? 0 : 1) != -1) && (java.lang.Integer.compareUnsigned((byte)((byte[][]) (((_0_board)).elmts))[(dafny.Helpers.unsignedToInt(_1_r))][(dafny.Helpers.unsignedToInt(_2_c))], (byte) 9) <= 0));
+          } else {
+            return true;
+          }
+        }));
+      } else {
+        return true;
+      }
+    }));}).apply(board);
+  }
+  public static boolean hasOnlyValidDigitsMethod(dafny.Array2<java.lang.Byte> board)
+  {
+    boolean isValid = false;
+    byte _hi0 = (byte) 9;
+    for (byte _0_r = (byte) 0; java.lang.Integer.compareUnsigned(_0_r, _hi0) < 0; _0_r++) {
+      byte _hi1 = (byte) 9;
+      for (byte _1_c = (byte) 0; java.lang.Integer.compareUnsigned(_1_c, _hi1) < 0; _1_c++) {
+        if (!(((((byte)((byte[][]) (((board)).elmts))[(dafny.Helpers.unsignedToInt(_0_r))][(dafny.Helpers.unsignedToInt(_1_c))]) == 0 ? 0 : 1) != -1) && (java.lang.Integer.compareUnsigned((byte)((byte[][]) (((board)).elmts))[(dafny.Helpers.unsignedToInt(_0_r))][(dafny.Helpers.unsignedToInt(_1_c))], (byte) 9) <= 0))) {
+          isValid = false;
+          return isValid;
+        }
+      }
+    }
+    isValid = true;
+    return isValid;
   }
   @Override
   public java.lang.String toString() {

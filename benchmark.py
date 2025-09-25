@@ -168,13 +168,13 @@ def main():
 
         preserve_map = {}
         if not languages or 'csharp' in languages:
-            preserve_map[abs_go_path] = ["SudokuByHand.cs", "Sudoku.csproj"]
+            preserve_map[abs_csharp_path] = ["SudokuByHand.cs", "Sudoku.csproj"]
         if not languages or 'go' in languages:
             preserve_map[abs_go_path] = ["src/SudokuByHand.go"]
         if not languages or 'java' in languages:
-            preserve_map[abs_go_path] = ["SudokuByHand.java"]
+            preserve_map[abs_java_path] = ["SudokuByHand.java"]
         if not languages or 'python' in languages:
-            preserve_map[abs_go_path] = ["SudokuByHand.py"]
+            preserve_map[abs_python_path] = ["SudokuByHand.py"]
 
         # Step 1: Move preserved files to TEMP and delete old directories
         print(" Backing up essential files...")

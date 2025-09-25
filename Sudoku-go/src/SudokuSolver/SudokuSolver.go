@@ -96,20 +96,30 @@ func (_static *CompanionStruct_Default___) Solve(board _dafny.Array) m_Datatypes
 		result = m_Datatypes.Companion_Option_.Create_None_()
 		return result
 	}
-	var _0_isValid bool
-	_ = _0_isValid
+	var _0_hasOnlyValidDigits bool
+	_ = _0_hasOnlyValidDigits
 	var _out0 bool
 	_ = _out0
-	_out0 = Companion_Default___.IsValidBoardMethod(board)
-	_0_isValid = _out0
-	if !(_0_isValid) {
+	_out0 = Companion_Default___.HasOnlyValidDigitsMethod(board)
+	_0_hasOnlyValidDigits = _out0
+	if !(_0_hasOnlyValidDigits) {
 		result = m_Datatypes.Companion_Option_.Create_None_()
 		return result
 	}
-	var _out1 m_Datatypes.Option
+	var _1_isValid bool
+	_ = _1_isValid
+	var _out1 bool
 	_ = _out1
-	_out1 = Companion_Default___.Solving(board)
-	result = _out1
+	_out1 = Companion_Default___.IsValidBoardMethod(board)
+	_1_isValid = _out1
+	if !(_1_isValid) {
+		result = m_Datatypes.Companion_Option_.Create_None_()
+		return result
+	}
+	var _out2 m_Datatypes.Option
+	_ = _out2
+	_out2 = Companion_Default___.Solving(board)
+	result = _out2
 	return result
 }
 func (_static *CompanionStruct_Default___) Solving(board _dafny.Array) m_Datatypes.Option {
@@ -492,6 +502,44 @@ func (_static *CompanionStruct_Default___) IsFullBoard(board _dafny.Array) bool 
 			return true
 		}
 	})
+}
+func (_static *CompanionStruct_Default___) HasOnlyValidDigits(board _dafny.Array) bool {
+	return _dafny.Quantifier(m_Datatypes.Companion_Uint8_.IntegerRange(_dafny.Zero, _dafny.IntOfInt64(9)), true, func(_forall_var_0 uint8) bool {
+		var _0_r uint8
+		_0_r = interface{}(_forall_var_0).(uint8)
+		if true {
+			return _dafny.Quantifier(m_Datatypes.Companion_Uint8_.IntegerRange(_dafny.Zero, _dafny.IntOfInt64(9)), true, func(_forall_var_1 uint8) bool {
+				var _1_c uint8
+				_1_c = interface{}(_forall_var_1).(uint8)
+				if true {
+					return !((((uint8(0)) <= (_0_r)) && ((_0_r) < (uint8(9)))) && (((uint8(0)) <= (_1_c)) && ((_1_c) < (uint8(9))))) || (((uint8(0)) <= (_dafny.ArrayGet((board), int(_0_r), int(_1_c)).(uint8))) && ((_dafny.ArrayGet((board), int(_0_r), int(_1_c)).(uint8)) <= (uint8(9))))
+				} else {
+					return true
+				}
+			})
+		} else {
+			return true
+		}
+	})
+}
+func (_static *CompanionStruct_Default___) HasOnlyValidDigitsMethod(board _dafny.Array) bool {
+	var isValid bool = false
+	_ = isValid
+	var _hi0 uint8 = uint8(9)
+	_ = _hi0
+	for _0_r := uint8(0); _0_r < _hi0; _0_r++ {
+		var _hi1 uint8 = uint8(9)
+		_ = _hi1
+		for _1_c := uint8(0); _1_c < _hi1; _1_c++ {
+			if !(((uint8(0)) <= (_dafny.ArrayGet((board), int(_0_r), int(_1_c)).(uint8))) && ((_dafny.ArrayGet((board), int(_0_r), int(_1_c)).(uint8)) <= (uint8(9)))) {
+				isValid = false
+				return isValid
+			}
+		}
+	}
+	isValid = true
+	return isValid
+	return isValid
 }
 
 // End of class Default__

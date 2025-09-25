@@ -49,10 +49,14 @@ module SudokuSolver {
 
   method Solve(board: Board) returns (result: Option<Board>)
     modifies board
-    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) case None() => !is9x9(board) || !isValidBoard(board) || forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
+    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) case None() => !is9x9(board) || !hasOnlyValidDigits(board) || !isValidBoard(board) || forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
     decreases board
   {
     if !is9x9(board) {
+      return None;
+    }
+    var hasOnlyValidDigits := hasOnlyValidDigitsMethod(board);
+    if !hasOnlyValidDigits {
       return None;
     }
     var isValid := isValidBoardMethod(board);
@@ -66,8 +70,9 @@ module SudokuSolver {
   method Solving(board: Board) returns (result: Option<Board>)
     requires is9x9(board)
     requires isValidBoard(board)
+    requires hasOnlyValidDigits(board)
     modifies board
-    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) case None() => forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
+    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) && hasOnlyValidDigits(board) case None() => forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
     decreases EmptySlotCount(board)
   {
     var empty := FindEmptySlot(board);
@@ -580,6 +585,39 @@ module SudokuSolver {
       (0 <= r < 9 &&
       0 <= c < 9 ==>
         board[r, c] <= 9)
+  }
+
+  predicate hasOnlyValidDigits(board: Board)
+    requires is9x9(board)
+    reads board
+    decreases {board}, board
+  {
+    forall r: uint8, c: uint8 {:trigger board[r, c]} :: 
+      (0 <= r < 9 &&
+      0 <= c < 9 ==>
+        0 <= board[r, c]) &&
+      (0 <= r < 9 &&
+      0 <= c < 9 ==>
+        board[r, c] <= 9)
+  }
+
+  method hasOnlyValidDigitsMethod(board: Board) returns (isValid: bool)
+    requires is9x9(board)
+    ensures isValid <==> hasOnlyValidDigits(board)
+    decreases board
+  {
+    for r: uint8 := 0 to 9
+      invariant forall r': uint8, c': int {:trigger board[r', c']} :: (0 <= r' < r && 0 <= c' < 9 ==> 0 <= board[r', c']) && (0 <= r' < r && 0 <= c' < 9 ==> board[r', c'] <= 9)
+    {
+      for c: uint8 := 0 to 9
+        invariant forall r': uint8, c': uint8 {:trigger board[r', c']} :: ((0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> 0 <= board[r', c']) && ((0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> board[r', c'] <= 9)
+      {
+        if !(0 <= board[r, c] <= 9) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   import opened Datatypes
@@ -6430,17 +6468,25 @@ namespace SudokuSolver {
         result = Datatypes.Option<byte[,]>.create_None();
         return result;
       }
-      bool _0_isValid;
+      bool _0_hasOnlyValidDigits;
       bool _out0;
-      _out0 = SudokuSolver.__default.isValidBoardMethod(board);
-      _0_isValid = _out0;
-      if (!(_0_isValid)) {
+      _out0 = SudokuSolver.__default.hasOnlyValidDigitsMethod(board);
+      _0_hasOnlyValidDigits = _out0;
+      if (!(_0_hasOnlyValidDigits)) {
         result = Datatypes.Option<byte[,]>.create_None();
         return result;
       }
-      Datatypes._IOption<byte[,]> _out1;
-      _out1 = SudokuSolver.__default.Solving(board);
-      result = _out1;
+      bool _1_isValid;
+      bool _out1;
+      _out1 = SudokuSolver.__default.isValidBoardMethod(board);
+      _1_isValid = _out1;
+      if (!(_1_isValid)) {
+        result = Datatypes.Option<byte[,]>.create_None();
+        return result;
+      }
+      Datatypes._IOption<byte[,]> _out2;
+      _out2 = SudokuSolver.__default.Solving(board);
+      result = _out2;
       return result;
     }
     public static Datatypes._IOption<byte[,]> Solving(byte[,] board)
@@ -6762,6 +6808,40 @@ namespace SudokuSolver {
           return true;
         }
       }))))(board);
+    }
+    public static bool hasOnlyValidDigits(byte[,] board) {
+      return Dafny.Helpers.Id<Func<byte[,], bool>>((_0_board) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        byte _1_r = (byte)_forall_var_0;
+        if (true) {
+          return Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
+            byte _2_c = (byte)_forall_var_1;
+            if (true) {
+              return !(((((byte)(0)) <= (_1_r)) && ((_1_r) < ((byte)(9)))) && ((((byte)(0)) <= (_2_c)) && ((_2_c) < ((byte)(9))))) || ((((byte)(0)) <= ((_0_board)[(int)(_1_r), (int)(_2_c)])) && (((_0_board)[(int)(_1_r), (int)(_2_c)]) <= ((byte)(9))));
+            } else {
+              return true;
+            }
+          })));
+        } else {
+          return true;
+        }
+      }))))(board);
+    }
+    public static bool hasOnlyValidDigitsMethod(byte[,] board)
+    {
+      bool isValid = false;
+      byte _hi0 = (byte)(9);
+      for (byte _0_r = (byte)(0); _0_r < _hi0; _0_r++) {
+        byte _hi1 = (byte)(9);
+        for (byte _1_c = (byte)(0); _1_c < _hi1; _1_c++) {
+          if (!((((byte)(0)) <= ((board)[(int)(_0_r), (int)(_1_c)])) && (((board)[(int)(_0_r), (int)(_1_c)]) <= ((byte)(9))))) {
+            isValid = false;
+            return isValid;
+          }
+        }
+      }
+      isValid = true;
+      return isValid;
+      return isValid;
     }
   }
 } // end of namespace SudokuSolver

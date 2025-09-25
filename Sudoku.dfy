@@ -28,9 +28,14 @@ module SudokuSolver{
         modifies board
         ensures match result
             case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard)
-            case None => !is9x9(board) || !isValidBoard(board) || (forall r: uint8 ,c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> board[r,c] == old(board[r,c]) && EmptySlotCount(board) == old(EmptySlotCount(board)))
+            case None => !is9x9(board) || !hasOnlyValidDigits(board) || !isValidBoard(board) || (forall r: uint8 ,c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> board[r,c] == old(board[r,c]) && EmptySlotCount(board) == old(EmptySlotCount(board)))
     {
         if (!is9x9(board))
+        {
+            return None;
+        }
+        var hasOnlyValidDigits := hasOnlyValidDigitsMethod(board);
+        if !hasOnlyValidDigits
         {
             return None;
         }
@@ -47,8 +52,9 @@ module SudokuSolver{
         modifies board
         requires is9x9(board)
         requires isValidBoard(board)
+        requires hasOnlyValidDigits(board)
         ensures match result
-            case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard)
+            case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) && hasOnlyValidDigits(board)
             case None => forall r: uint8 ,c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> board[r,c] == old(board[r,c]) && EmptySlotCount(board) == old(EmptySlotCount(board))
         decreases EmptySlotCount(board)
     {
@@ -77,6 +83,8 @@ module SudokuSolver{
         }
         return None;
     }
+
+
 
     ghost method ghost_copy(board:Board) returns (boardCopy:Board)
         requires is9x9(board)
@@ -525,5 +533,28 @@ module SudokuSolver{
         requires is9x9(board)
     {
         forall r:uint8, c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> 1 <= board[r, c] <= 9
+    }
+    predicate hasOnlyValidDigits(board:Board)
+        reads board
+        requires is9x9(board)
+    {
+        forall r:uint8, c:uint8 :: 0 <= r < 9 && 0 <= c < 9 ==> 0 <= board[r, c] <= 9
+    }
+    method hasOnlyValidDigitsMethod(board:Board) returns (isValid:bool)
+        requires is9x9(board)
+        ensures isValid <==> hasOnlyValidDigits(board)
+    {
+        for r:uint8 := 0 to 9
+            invariant forall r', c' :: 0 <= r' < r && 0 <= c' < 9 ==> 0 <= board[r',c'] <= 9
+        {
+            for c:uint8 := 0 to 9
+            invariant forall r', c' :: (0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> 0 <= board[r',c'] <= 9
+            {
+                if(!(0<= board[r,c] <= 9)){
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

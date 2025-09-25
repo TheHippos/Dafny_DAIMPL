@@ -40,16 +40,23 @@ class default__:
         if not(default__.is9x9(board)):
             result = Datatypes.Option_None()
             return result
-        d_0_isValid_: bool
+        d_0_hasOnlyValidDigits_: bool
         out0_: bool
-        out0_ = default__.isValidBoardMethod(board)
-        d_0_isValid_ = out0_
-        if not(d_0_isValid_):
+        out0_ = default__.hasOnlyValidDigitsMethod(board)
+        d_0_hasOnlyValidDigits_ = out0_
+        if not(d_0_hasOnlyValidDigits_):
             result = Datatypes.Option_None()
             return result
-        out1_: Datatypes.Option
-        out1_ = default__.Solving(board)
-        result = out1_
+        d_1_isValid_: bool
+        out1_: bool
+        out1_ = default__.isValidBoardMethod(board)
+        d_1_isValid_ = out1_
+        if not(d_1_isValid_):
+            result = Datatypes.Option_None()
+            return result
+        out2_: Datatypes.Option
+        out2_ = default__.Solving(board)
+        result = out2_
         return result
 
     @staticmethod
@@ -349,4 +356,36 @@ class default__:
                 return True
 
         return _dafny.quantifier(_dafny.IntegerRange(0, 9), True, lambda0_)
+
+    @staticmethod
+    def hasOnlyValidDigits(board):
+        def lambda0_(forall_var_0_):
+            def lambda1_(forall_var_1_):
+                d_1_c_: int = forall_var_1_
+                if True:
+                    return not ((((0) <= (d_0_r_)) and ((d_0_r_) < (9))) and (((0) <= (d_1_c_)) and ((d_1_c_) < (9)))) or (((0) <= ((board)[d_0_r_, d_1_c_])) and (((board)[d_0_r_, d_1_c_]) <= (9)))
+                elif True:
+                    return True
+
+            d_0_r_: int = forall_var_0_
+            if True:
+                return _dafny.quantifier(_dafny.IntegerRange(0, 9), True, lambda1_)
+            elif True:
+                return True
+
+        return _dafny.quantifier(_dafny.IntegerRange(0, 9), True, lambda0_)
+
+    @staticmethod
+    def hasOnlyValidDigitsMethod(board):
+        isValid: bool = False
+        hi0_ = 9
+        for d_0_r_ in range(0, hi0_):
+            hi1_ = 9
+            for d_1_c_ in range(0, hi1_):
+                if not(((0) <= ((board)[d_0_r_, d_1_c_])) and (((board)[d_0_r_, d_1_c_]) <= (9))):
+                    isValid = False
+                    return isValid
+        isValid = True
+        return isValid
+        return isValid
 
