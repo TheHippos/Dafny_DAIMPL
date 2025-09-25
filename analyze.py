@@ -5,7 +5,7 @@ def generate_publication_ready_tables(filepath):
     """
     Loads data, performs robust ANOVA, and generates a comprehensive
     set of publication-ready LaTeX tables, including a detailed
-    performance breakdown by workload.
+    performance breakdown by workload in the format Mean ± SD.
 
     Args:
         filepath (str): The path to the CSV data file.
@@ -22,19 +22,41 @@ def generate_publication_ready_tables(filepath):
 
     print("Performing analysis and generating final LaTeX tables...")
 
-    # --- 1. Create the detailed performance comparison table ---
-    # Pivot the data to get workloads as rows and language/variant as columns
-    performance_pivot = df.pivot_table(
+    # --- 1. Create the detailed performance comparison table (MODIFIED SECTION) ---
+
+    # Assuming a single workload value is used for the entire dataset.
+    # This value will be moved from the table body to the caption.
+    try:
+        workload_value = df['Workload'].unique()[0]
+        workload_caption_str = f" for a workload of {workload_value:,} runs"
+    except IndexError:
+        workload_caption_str = "" # Handle case of empty DataFrame
+
+    # Pivot the data to get both mean and standard deviation for performance
+    performance_agg = df.pivot_table(
         index='Workload',
         columns=['Language', 'Variant'],
         values='Performance',
-        aggfunc='mean'
+        aggfunc=['mean', 'std']
     ).round(0).astype(int)
 
+    # Create a new DataFrame to hold the formatted "Mean ± SD" strings
+    mean_df = performance_agg['mean']
+    std_df = performance_agg['std']
+
+    # Combine mean and std into the desired string format
+    formatted_pivot = pd.DataFrame(index=mean_df.index, columns=mean_df.columns)
+    for col in mean_df.columns:
+        # The string format requires LaTeX's math mode for the \pm symbol
+        formatted_pivot[col] = mean_df[col].astype(str) + ' $\\pm$ ' + std_df[col].astype(str)
+
+    # Remove the workload from the table body by resetting the index
+    formatted_pivot.reset_index(drop=True, inplace=True)
+
     # Reorder columns to match the desired layout: C#, Go, Python, Java
-    performance_pivot = performance_pivot.reindex(columns=['csharp', 'go', 'python', 'java'], level=0)
+    formatted_pivot = formatted_pivot.reindex(columns=['csharp', 'go', 'python', 'java'], level=0)
     # Ensure handwritten is always before dafny
-    performance_pivot = performance_pivot.reindex(columns=['handwritten', 'dafny'], level=1)
+    formatted_pivot = formatted_pivot.reindex(columns=['handwritten', 'dafny'], level=1)
 
 
     # --- 2. Run Welch's ANOVA and Games-Howell Test ---
@@ -59,14 +81,18 @@ def generate_publication_ready_tables(filepath):
     try:
         with open(latex_filename, 'w') as f:
             f.write("% LaTeX code generated from Python analysis script\n")
-            f.write("% You may need the `booktabs` and `siunitx` packages.\n\n\n")
+            f.write("% You may need the `booktabs`, `multirow`, and `siunitx` packages.\n\n\n")
 
-            # --- LaTeX Table 1: Detailed Performance Comparison (NEW) ---
+            # --- LaTeX Table 1: Detailed Performance Comparison (MODIFIED) ---
             f.write("% --- Table 1: Detailed Performance Comparison ---\n")
-            detailed_table_latex = performance_pivot.to_latex(
-                caption="Performance Comparison Across Languages and Implementations (ms).",
+            caption_text = f"Performance Comparison (Mean $\\pm$ SD) in ms{workload_caption_str}."
+
+            detailed_table_latex = formatted_pivot.to_latex(
+                caption=caption_text,
                 label="tab:perf_data",
-                multicolumn_format='c' # Center headers
+                multicolumn_format='c', # Center headers
+                index=False,             # Don't print the DataFrame index
+                escape=False             # Allow LaTeX commands like \pm and \$
             )
             # Manually modify for two-column format and better spacing
             detailed_table_latex = detailed_table_latex.replace('\\begin{table}', '\\begin{table*}[ht]', 1)
@@ -95,7 +121,7 @@ def generate_publication_ready_tables(filepath):
                 caption="Games-Howell Post-Hoc Test Results for Dafny vs. Handwritten Variants.",
                 label="tab:key_comparisons", position="!htbp"
             )
-            key_comparison_latex = key_comparison_latex.replace('\\begin{table}', '\\begin{table*}[ht]', 1)
+            key_comparison_latex = key_comparison_latex.replace('\\begin{table}', '\\begin{table*}', 1)
             key_comparison_latex = key_comparison_latex.replace('\\end{table}', '\\end{table*}', 1)
             f.write(key_comparison_latex)
             f.write("\n\n")
@@ -107,7 +133,7 @@ def generate_publication_ready_tables(filepath):
                 caption="Full Pairwise Games-Howell Post-Hoc Test Results.",
                 label="tab:full_comparisons", position="!htbp"
             )
-            full_comparison_latex = full_comparison_latex.replace('\\begin{table}', '\\begin{table*}[ht]', 1)
+            full_comparison_latex = full_comparison_latex.replace('\\begin{table}', '\\begin{table*}', 1)
             full_comparison_latex = full_comparison_latex.replace('\\end{table}', '\\end{table*}', 1)
             insert_pos = full_comparison_latex.find('\\label{tab:full_comparisons}') + len('\\label{tab:full_comparisons}')
             full_comparison_latex = full_comparison_latex[:insert_pos] + '\n\\small' + full_comparison_latex[insert_pos:]
@@ -120,5 +146,8 @@ def generate_publication_ready_tables(filepath):
 
 
 if __name__ == '__main__':
-    csv_file = 'benchmark_7runs.csv'
+    # Make sure you have a CSV file named 'only100kruns.csv' in the same directory
+    # or provide the correct path to your file.
+    # The CSV should have columns: 'Language', 'Variant', 'Workload', 'Performance'
+    csv_file = 'only100kruns.csv'
     generate_publication_ready_tables(csv_file)
