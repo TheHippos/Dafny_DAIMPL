@@ -55,7 +55,7 @@ module SudokuSolver {
     if !is9x9(board) {
       return None;
     }
-    var isValid := isValidBoardMethod(board);
+    var isValid := isValidBoard(board);
     if !isValid {
       return None;
     }
@@ -81,7 +81,7 @@ module SudokuSolver {
       invariant forall r': uint8, c': uint8 {:trigger old(board[r', c'])} {:trigger board[r', c']} :: 0 <= r' < 9 && 0 <= c' < 9 ==> board[r', c'] == old(board[r', c'])
       invariant EmptySlotCount(board) == old(EmptySlotCount(board))
     {
-      var isValid := isValidDigitMethod(board, r, c, digit as sValue);
+      var isValid := isValidDigit(board, r, c, digit as sValue);
       if isValid {
         changeToSValue(board, r, c, digit as sValue);
         var recursiveResult := Solving(board);
@@ -548,7 +548,7 @@ module SudokuSolver {
       for c: uint8 := 0 to 9
         invariant forall r': uint8, c': uint8 {:trigger board[r', c']} :: (0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> isValidDigit(board, r', c', board[r', c'])
       {
-        var isValidDigit := isValidDigitMethod(board, r, c, board[r, c]);
+        var isValidDigit := isValidDigit(board, r, c, board[r, c]);
         if !isValidDigit {
           return false;
         }
@@ -6431,16 +6431,14 @@ namespace SudokuSolver {
         return result;
       }
       bool _0_isValid;
-      bool _out0;
-      _out0 = SudokuSolver.__default.isValidBoardMethod(board);
-      _0_isValid = _out0;
+      _0_isValid = SudokuSolver.__default.isValidBoard(board);
       if (!(_0_isValid)) {
         result = Datatypes.Option<byte[,]>.create_None();
         return result;
       }
-      Datatypes._IOption<byte[,]> _out1;
-      _out1 = SudokuSolver.__default.Solving(board);
-      result = _out1;
+      Datatypes._IOption<byte[,]> _out0;
+      _out0 = SudokuSolver.__default.Solving(board);
+      result = _out0;
       return result;
     }
     public static Datatypes._IOption<byte[,]> Solving(byte[,] board)
@@ -6461,15 +6459,13 @@ namespace SudokuSolver {
       byte _hi0 = (byte)(10);
       for (byte _3_digit = (byte)(1); _3_digit < _hi0; _3_digit++) {
         bool _4_isValid;
-        bool _out1;
-        _out1 = SudokuSolver.__default.isValidDigitMethod(board, _1_r, _2_c, (byte)(_3_digit));
-        _4_isValid = _out1;
+        _4_isValid = SudokuSolver.__default.isValidDigit(board, _1_r, _2_c, (byte)(_3_digit));
         if (_4_isValid) {
           SudokuSolver.__default.changeToSValue(board, _1_r, _2_c, (byte)(_3_digit));
           Datatypes._IOption<byte[,]> _5_recursiveResult;
-          Datatypes._IOption<byte[,]> _out2;
-          _out2 = SudokuSolver.__default.Solving(board);
-          _5_recursiveResult = _out2;
+          Datatypes._IOption<byte[,]> _out1;
+          _out1 = SudokuSolver.__default.Solving(board);
+          _5_recursiveResult = _out1;
           if ((_5_recursiveResult).is_Some) {
             result = _5_recursiveResult;
             return result;
@@ -6716,9 +6712,7 @@ namespace SudokuSolver {
         byte _hi1 = (byte)(9);
         for (byte _1_c = (byte)(0); _1_c < _hi1; _1_c++) {
           bool _2_isValidDigit;
-          bool _out0;
-          _out0 = SudokuSolver.__default.isValidDigitMethod(board, _0_r, _1_c, (board)[(int)(_0_r), (int)(_1_c)]);
-          _2_isValidDigit = _out0;
+          _2_isValidDigit = SudokuSolver.__default.isValidDigit(board, _0_r, _1_c, (board)[(int)(_0_r), (int)(_1_c)]);
           if (!(_2_isValidDigit)) {
             isValid = false;
             return isValid;

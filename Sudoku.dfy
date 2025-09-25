@@ -34,7 +34,7 @@ module SudokuSolver{
         {
             return None;
         }
-        var isValid := isValidBoardMethod(board);
+        var isValid := isValidBoard(board);
         if (!isValid)
         {
             return None;
@@ -64,7 +64,7 @@ module SudokuSolver{
             invariant forall r':uint8, c':uint8 :: 0 <= r' < 9 && 0 <= c' < 9 ==> board[r',c'] == old(board[r',c'])
             invariant EmptySlotCount(board) == old(EmptySlotCount(board))
         {
-            var isValid := isValidDigitMethod(board, r, c, digit as sValue);
+            var isValid := isValidDigit(board, r, c, digit as sValue);
             if (isValid){
                 changeToSValue(board, r,c, digit as sValue);
                 var recursiveResult := Solving(board);
@@ -506,7 +506,7 @@ module SudokuSolver{
             for c:uint8 := 0 to 9
                 invariant forall r', c' :: (0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> isValidDigit(board,r',c',board[r',c'])
             {
-                var isValidDigit := isValidDigitMethod(board,r,c,board[r,c]);
+                var isValidDigit := isValidDigit(board,r,c,board[r,c]);
                 if(!isValidDigit){
                     return false;
                 }
