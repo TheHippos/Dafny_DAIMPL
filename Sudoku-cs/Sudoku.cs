@@ -14,14 +14,11 @@ using System.Collections;
 
 
 module Datatypes {
-  newtype {:nativeType ""uint""} uint32 = x: int
-    | 0 <= x < 4294967296
+  type uint32 = int
 
-  newtype {:nativeType ""byte""} uint8 = x: int
-    | 0 <= x < 256
+  type uint8 = int
 
-  newtype {:nativeType ""byte""} sValue = x: int
-    | 0 <= x <= 9
+  type sValue = int
 
   datatype Option<T> = None | Some(value: T)
 
@@ -49,10 +46,14 @@ module SudokuSolver {
 
   method Solve(board: Board) returns (result: Option<Board>)
     modifies board
-    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) case None() => !is9x9(board) || !isValidBoard(board) || forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
+    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) case None() => !is9x9(board) || !hasOnlyValidDigits(board) || !isValidBoard(board) || forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
     decreases board
   {
     if !is9x9(board) {
+      return None;
+    }
+    var hasOnlyValidDigits := hasOnlyValidDigitsMethod(board);
+    if !hasOnlyValidDigits {
       return None;
     }
     var isValid := isValidBoardMethod(board);
@@ -66,8 +67,9 @@ module SudokuSolver {
   method Solving(board: Board) returns (result: Option<Board>)
     requires is9x9(board)
     requires isValidBoard(board)
+    requires hasOnlyValidDigits(board)
     modifies board
-    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) case None() => forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
+    ensures match result case Some(resultBoard) => is9x9(resultBoard) && isValidBoard(resultBoard) && isFullBoard(resultBoard) && hasOnlyValidDigits(board) case None() => forall r: uint8, c: uint8 {:trigger old(board[r, c])} {:trigger board[r, c]} :: (0 <= r < 9 && 0 <= c < 9 ==> board[r, c] == old(board[r, c])) && (0 <= r < 9 && 0 <= c < 9 ==> EmptySlotCount(board) == old(EmptySlotCount(board)))
     decreases EmptySlotCount(board)
   {
     var empty := FindEmptySlot(board);
@@ -128,11 +130,11 @@ module SudokuSolver {
     decreases board
   {
     boardCopy := new sValue[9, 9] ((i: nat, j: int) => 0);
-    for r: uint8 := 0 to 9
+    for r: int := 0 to 9
       invariant forall i: uint8, j: uint8 {:trigger board[i, j]} {:trigger boardCopy[i, j]} :: 0 <= i < r && 0 <= j < 9 ==> boardCopy[i, j] == board[i, j]
       invariant r > 0 ==> EmptySlotCountRecursiveDownwards(board, r - 1, 8) == EmptySlotCountRecursiveDownwards(boardCopy, r - 1, 8)
     {
-      for c: uint8 := 0 to 9
+      for c: int := 0 to 9
         invariant forall j: uint8 {:trigger board[r, j]} {:trigger boardCopy[r, j]} :: 0 <= j < c ==> boardCopy[r, j] == board[r, j]
         invariant forall i: uint8, j: uint8 {:trigger board[i, j]} {:trigger boardCopy[i, j]} :: 0 <= i < r && 0 <= j < 9 ==> boardCopy[i, j] == board[i, j]
       {
@@ -390,7 +392,7 @@ module SudokuSolver {
     ensures count > 0 <==> exists i: uint8, j: uint8 {:trigger board[i, j]} :: (i > r || (i == r && j >= c)) && 0 <= i < 9 && 0 <= j < 9 && board[i, j] == 0
     decreases (board.Length0 * board.Length1) as uint8 - (board.Length1 as uint8 * r + c)
   {
-    var current_cell_val: uint8 := if board[r, c] == 0 then 1 else 0;
+    var current_cell_val: int := if board[r, c] == 0 then 1 else 0;
     if r == 8 && c == 8 then
       current_cell_val
     else
@@ -469,8 +471,8 @@ module SudokuSolver {
       return true;
     }
     for i: uint8 := 0 to 9
-      invariant forall c': uint8 {:trigger board[row, c']} :: 0 <= c' < i ==> c' != column ==> board[row, c'] != digit
-      invariant forall r': uint8 {:trigger board[r', column]} :: 0 <= r' < i ==> r' != row ==> board[r', column] != digit
+      invariant forall c': int {:trigger board[row, c']} :: 0 <= c' < i ==> c' != column ==> board[row, c'] != digit
+      invariant forall r': int {:trigger board[r', column]} :: 0 <= r' < i ==> r' != row ==> board[r', column] != digit
     {
       if i != column && board[row, i] == digit {
         return false;
@@ -482,10 +484,10 @@ module SudokuSolver {
     var box_row := row / 3 * 3;
     var box_col := column / 3 * 3;
     for r: uint8 := box_row to box_row + 3
-      invariant forall r_prev: uint8, c_prev: uint8 {:trigger board[r_prev, c_prev]} :: box_row <= r_prev < r && box_col <= c_prev < box_col + 3 ==> (r_prev == row && c_prev == column) || board[r_prev, c_prev] != digit
+      invariant forall r_prev: int, c_prev: int {:trigger board[r_prev, c_prev]} :: box_row <= r_prev < r && box_col <= c_prev < box_col + 3 ==> (r_prev == row && c_prev == column) || board[r_prev, c_prev] != digit
     {
       for c: uint8 := box_col to box_col + 3
-        invariant forall r_prev: uint8, c_prev: uint8 {:trigger board[r_prev, c_prev]} :: (box_row <= r_prev < r && box_col <= c_prev < box_col + 3) || (r_prev == r && box_col <= c_prev < c) ==> (r_prev == row && c_prev == column) || board[r_prev, c_prev] != digit
+        invariant forall r_prev: int, c_prev: int {:trigger board[r_prev, c_prev]} :: (box_row <= r_prev < r && box_col <= c_prev < box_col + 3) || (r_prev == r && box_col <= c_prev < c) ==> (r_prev == row && c_prev == column) || board[r_prev, c_prev] != digit
       {
         if (r != row || c != column) && board[r, c] == digit {
           return false;
@@ -532,8 +534,8 @@ module SudokuSolver {
     reads board
     decreases {board}, board, row, column, digit
   {
-    var box_row: uint8 := row / 3 * 3;
-    var box_col: uint8 := column / 3 * 3;
+    var box_row: int := row / 3 * 3;
+    var box_col: int := column / 3 * 3;
     digit == 0 || forall r: uint8, c: uint8 {:trigger board[r, c]} :: box_row <= r < box_row + 3 && box_col <= c < box_col + 3 ==> (r == row && c == column) || board[r, c] != digit
   }
 
@@ -543,10 +545,10 @@ module SudokuSolver {
     decreases board
   {
     for r: uint8 := 0 to 9
-      invariant forall r': uint8, c': uint8 {:trigger board[r', c']} :: 0 <= r' < r && 0 <= c' < 9 ==> isValidDigit(board, r', c', board[r', c'])
+      invariant forall r': int, c': int {:trigger board[r', c']} :: 0 <= r' < r && 0 <= c' < 9 ==> isValidDigit(board, r', c', board[r', c'])
     {
       for c: uint8 := 0 to 9
-        invariant forall r': uint8, c': uint8 {:trigger board[r', c']} :: (0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> isValidDigit(board, r', c', board[r', c'])
+        invariant forall r': int, c': int {:trigger board[r', c']} :: (0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> isValidDigit(board, r', c', board[r', c'])
       {
         var isValidDigit := isValidDigitMethod(board, r, c, board[r, c]);
         if !isValidDigit {
@@ -580,6 +582,39 @@ module SudokuSolver {
       (0 <= r < 9 &&
       0 <= c < 9 ==>
         board[r, c] <= 9)
+  }
+
+  predicate hasOnlyValidDigits(board: Board)
+    requires is9x9(board)
+    reads board
+    decreases {board}, board
+  {
+    forall r: uint8, c: uint8 {:trigger board[r, c]} :: 
+      (0 <= r < 9 &&
+      0 <= c < 9 ==>
+        0 <= board[r, c]) &&
+      (0 <= r < 9 &&
+      0 <= c < 9 ==>
+        board[r, c] <= 9)
+  }
+
+  method hasOnlyValidDigitsMethod(board: Board) returns (isValid: bool)
+    requires is9x9(board)
+    ensures isValid <==> hasOnlyValidDigits(board)
+    decreases board
+  {
+    for r: uint8 := 0 to 9
+      invariant forall r': int, c': int {:trigger board[r', c']} :: (0 <= r' < r && 0 <= c' < 9 ==> 0 <= board[r', c']) && (0 <= r' < r && 0 <= c' < 9 ==> board[r', c'] <= 9)
+    {
+      for c: uint8 := 0 to 9
+        invariant forall r': int, c': int {:trigger board[r', c']} :: ((0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> 0 <= board[r', c']) && ((0 <= r' < r && 0 <= c' < 9) || (r' == r && 0 <= c' < c) ==> board[r', c'] <= 9)
+      {
+        if !(0 <= board[r, c] <= 9) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   import opened Datatypes
@@ -6279,46 +6314,6 @@ internal static class FuncExtensions {
 namespace Datatypes {
 
 
-  public partial class uint32 {
-    public static System.Collections.Generic.IEnumerable<uint> IntegerRange(BigInteger lo, BigInteger hi) {
-      for (var j = lo; j < hi; j++) { yield return (uint)j; }
-    }
-    private static readonly Dafny.TypeDescriptor<uint> _TYPE = new Dafny.TypeDescriptor<uint>(0);
-    public static Dafny.TypeDescriptor<uint> _TypeDescriptor() {
-      return _TYPE;
-    }
-    public static bool _Is(uint __source) {
-      return true;
-    }
-  }
-
-  public partial class uint8 {
-    public static System.Collections.Generic.IEnumerable<byte> IntegerRange(BigInteger lo, BigInteger hi) {
-      for (var j = lo; j < hi; j++) { yield return (byte)j; }
-    }
-    private static readonly Dafny.TypeDescriptor<byte> _TYPE = new Dafny.TypeDescriptor<byte>(0);
-    public static Dafny.TypeDescriptor<byte> _TypeDescriptor() {
-      return _TYPE;
-    }
-    public static bool _Is(byte __source) {
-      return true;
-    }
-  }
-
-  public partial class sValue {
-    public static System.Collections.Generic.IEnumerable<byte> IntegerRange(BigInteger lo, BigInteger hi) {
-      for (var j = lo; j < hi; j++) { yield return (byte)j; }
-    }
-    private static readonly Dafny.TypeDescriptor<byte> _TYPE = new Dafny.TypeDescriptor<byte>(0);
-    public static Dafny.TypeDescriptor<byte> _TypeDescriptor() {
-      return _TYPE;
-    }
-    public static bool _Is(byte __source) {
-      BigInteger _0_x = new BigInteger(__source);
-      return ((_0_x).Sign != -1) && ((_0_x) <= (new BigInteger(9)));
-    }
-  }
-
   public interface _IOption<T> {
     bool is_None { get; }
     bool is_Some { get; }
@@ -6402,7 +6397,7 @@ namespace Datatypes {
 namespace SudokuSolver {
 
   public partial class __default {
-    public static bool[] Run(byte[][,] boards)
+    public static bool[] Run(BigInteger[][,] boards)
     {
       bool[] solvable = new bool[0];
       Func<BigInteger, bool> _init0 = ((System.Func<BigInteger, bool>)((_0_i) => {
@@ -6413,61 +6408,69 @@ namespace SudokuSolver {
         _nw0[(int)(_i0_0)] = _init0(_i0_0);
       }
       solvable = _nw0;
-      uint _hi0 = (uint)(boards).LongLength;
-      for (uint _1_i = 0U; _1_i < _hi0; _1_i++) {
-        Datatypes._IOption<byte[,]> _2_result;
-        Datatypes._IOption<byte[,]> _out0;
+      BigInteger _hi0 = new BigInteger((boards).Length);
+      for (BigInteger _1_i = BigInteger.Zero; _1_i < _hi0; _1_i++) {
+        Datatypes._IOption<BigInteger[,]> _2_result;
+        Datatypes._IOption<BigInteger[,]> _out0;
         _out0 = SudokuSolver.__default.Solve((boards)[(int)(_1_i)]);
         _2_result = _out0;
         (solvable)[(int)((_1_i))] = (_2_result).is_Some;
       }
       return solvable;
     }
-    public static Datatypes._IOption<byte[,]> Solve(byte[,] board)
+    public static Datatypes._IOption<BigInteger[,]> Solve(BigInteger[,] board)
     {
-      Datatypes._IOption<byte[,]> result = Datatypes.Option<byte[,]>.Default();
+      Datatypes._IOption<BigInteger[,]> result = Datatypes.Option<BigInteger[,]>.Default();
       if (!(SudokuSolver.__default.is9x9(board))) {
-        result = Datatypes.Option<byte[,]>.create_None();
+        result = Datatypes.Option<BigInteger[,]>.create_None();
         return result;
       }
-      bool _0_isValid;
+      bool _0_hasOnlyValidDigits;
       bool _out0;
-      _out0 = SudokuSolver.__default.isValidBoardMethod(board);
-      _0_isValid = _out0;
-      if (!(_0_isValid)) {
-        result = Datatypes.Option<byte[,]>.create_None();
+      _out0 = SudokuSolver.__default.hasOnlyValidDigitsMethod(board);
+      _0_hasOnlyValidDigits = _out0;
+      if (!(_0_hasOnlyValidDigits)) {
+        result = Datatypes.Option<BigInteger[,]>.create_None();
         return result;
       }
-      Datatypes._IOption<byte[,]> _out1;
-      _out1 = SudokuSolver.__default.Solving(board);
-      result = _out1;
+      bool _1_isValid;
+      bool _out1;
+      _out1 = SudokuSolver.__default.isValidBoardMethod(board);
+      _1_isValid = _out1;
+      if (!(_1_isValid)) {
+        result = Datatypes.Option<BigInteger[,]>.create_None();
+        return result;
+      }
+      Datatypes._IOption<BigInteger[,]> _out2;
+      _out2 = SudokuSolver.__default.Solving(board);
+      result = _out2;
       return result;
     }
-    public static Datatypes._IOption<byte[,]> Solving(byte[,] board)
+    public static Datatypes._IOption<BigInteger[,]> Solving(BigInteger[,] board)
     {
-      Datatypes._IOption<byte[,]> result = Datatypes.Option<byte[,]>.Default();
-      Datatypes._IOption<_System._ITuple2<byte, byte>> _0_empty;
-      Datatypes._IOption<_System._ITuple2<byte, byte>> _out0;
+      Datatypes._IOption<BigInteger[,]> result = Datatypes.Option<BigInteger[,]>.Default();
+      Datatypes._IOption<_System._ITuple2<BigInteger, BigInteger>> _0_empty;
+      Datatypes._IOption<_System._ITuple2<BigInteger, BigInteger>> _out0;
       _out0 = SudokuSolver.__default.FindEmptySlot(board);
       _0_empty = _out0;
       if ((_0_empty).is_None) {
-        result = Datatypes.Option<byte[,]>.create_Some(board);
+        result = Datatypes.Option<BigInteger[,]>.create_Some(board);
         return result;
       }
-      byte _1_r;
+      BigInteger _1_r;
       _1_r = ((_0_empty).dtor_value).dtor__0;
-      byte _2_c;
+      BigInteger _2_c;
       _2_c = ((_0_empty).dtor_value).dtor__1;
-      byte _hi0 = (byte)(10);
-      for (byte _3_digit = (byte)(1); _3_digit < _hi0; _3_digit++) {
+      BigInteger _hi0 = new BigInteger(10);
+      for (BigInteger _3_digit = BigInteger.One; _3_digit < _hi0; _3_digit++) {
         bool _4_isValid;
         bool _out1;
-        _out1 = SudokuSolver.__default.isValidDigitMethod(board, _1_r, _2_c, (byte)(_3_digit));
+        _out1 = SudokuSolver.__default.isValidDigitMethod(board, _1_r, _2_c, _3_digit);
         _4_isValid = _out1;
         if (_4_isValid) {
-          SudokuSolver.__default.changeToSValue(board, _1_r, _2_c, (byte)(_3_digit));
-          Datatypes._IOption<byte[,]> _5_recursiveResult;
-          Datatypes._IOption<byte[,]> _out2;
+          SudokuSolver.__default.changeToSValue(board, _1_r, _2_c, _3_digit);
+          Datatypes._IOption<BigInteger[,]> _5_recursiveResult;
+          Datatypes._IOption<BigInteger[,]> _out2;
           _out2 = SudokuSolver.__default.Solving(board);
           _5_recursiveResult = _out2;
           if ((_5_recursiveResult).is_Some) {
@@ -6477,164 +6480,148 @@ namespace SudokuSolver {
           SudokuSolver.__default.changeToZero(board, _1_r, _2_c);
         }
       }
-      result = Datatypes.Option<byte[,]>.create_None();
+      result = Datatypes.Option<BigInteger[,]>.create_None();
       return result;
       return result;
     }
-    public static byte[,] copy(byte[,] board)
+    public static BigInteger[,] copy(BigInteger[,] board)
     {
-      byte[,] boardCopy = new byte[0, 0];
-      Func<BigInteger, BigInteger, byte> _init0 = ((System.Func<BigInteger, BigInteger, byte>)((_0_i, _1_j) => {
-        return (byte)(0);
+      BigInteger[,] boardCopy = new BigInteger[0, 0];
+      Func<BigInteger, BigInteger, BigInteger> _init0 = ((System.Func<BigInteger, BigInteger, BigInteger>)((_0_i, _1_j) => {
+        return BigInteger.Zero;
       }));
-      byte[,] _nw0 = new byte[Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit")];
+      BigInteger[,] _nw0 = new BigInteger[Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit")];
       for (var _i0_0 = 0; _i0_0 < new BigInteger(_nw0.GetLength(0)); _i0_0++) {
         for (var _i1_0 = 0; _i1_0 < new BigInteger(_nw0.GetLength(1)); _i1_0++) {
           _nw0[(int)(_i0_0), (int)(_i1_0)] = _init0(_i0_0, _i1_0);
         }
       }
       boardCopy = _nw0;
-      byte _hi0 = (byte)(9);
-      for (byte _2_r = (byte)(0); _2_r < _hi0; _2_r++) {
-        byte _hi1 = (byte)(9);
-        for (byte _3_c = (byte)(0); _3_c < _hi1; _3_c++) {
+      BigInteger _hi0 = new BigInteger(9);
+      for (BigInteger _2_r = BigInteger.Zero; _2_r < _hi0; _2_r++) {
+        BigInteger _hi1 = new BigInteger(9);
+        for (BigInteger _3_c = BigInteger.Zero; _3_c < _hi1; _3_c++) {
           (boardCopy)[(int)((_2_r)), (int)((_3_c))] = (board)[(int)(_2_r), (int)(_3_c)];
         }
       }
       return boardCopy;
     }
-    public static bool BoardsEqualUpTo(byte[,] b1, byte[,] b2, byte r, byte c)
+    public static bool BoardsEqualUpTo(BigInteger[,] b1, BigInteger[,] b2, BigInteger r, BigInteger c)
     {
-      return Dafny.Helpers.Id<Func<byte, byte, byte[,], byte[,], bool>>((_0_r, _1_c, _2_b1, _3_b2) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
-        byte _4_i = (byte)_forall_var_0;
-        if (true) {
-          return Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
-            byte _5_j = (byte)_forall_var_1;
-            if (true) {
-              return !(((((_4_i) < (_0_r)) || (((_4_i) == (_0_r)) && ((_5_j) <= (_1_c)))) && ((((byte)(0)) <= (_4_i)) && ((_4_i) < ((byte)(9))))) && ((((byte)(0)) <= (_5_j)) && ((_5_j) < ((byte)(9))))) || (((_2_b1)[(int)(_4_i), (int)(_5_j)]) == ((_3_b2)[(int)(_4_i), (int)(_5_j)]));
-            } else {
-              return true;
-            }
-          })));
-        } else {
-          return true;
-        }
+      return Dafny.Helpers.Id<Func<BigInteger, BigInteger, BigInteger[,], BigInteger[,], bool>>((_0_r, _1_c, _2_b1, _3_b2) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        BigInteger _4_i = (BigInteger)_forall_var_0;
+        return Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
+          BigInteger _5_j = (BigInteger)_forall_var_1;
+          return !(((((_4_i) < (_0_r)) || (((_4_i) == (_0_r)) && ((_5_j) <= (_1_c)))) && (((_4_i).Sign != -1) && ((_4_i) < (new BigInteger(9))))) && (((_5_j).Sign != -1) && ((_5_j) < (new BigInteger(9))))) || (((_2_b1)[(int)(_4_i), (int)(_5_j)]) == ((_3_b2)[(int)(_4_i), (int)(_5_j)]));
+        })));
       }))))(r, c, b1, b2);
     }
-    public static bool BoardsEqualFrom(byte[,] b1, byte[,] b2, byte r, byte c)
+    public static bool BoardsEqualFrom(BigInteger[,] b1, BigInteger[,] b2, BigInteger r, BigInteger c)
     {
-      return Dafny.Helpers.Id<Func<byte, byte, byte[,], byte[,], bool>>((_0_r, _1_c, _2_b1, _3_b2) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
-        byte _4_i = (byte)_forall_var_0;
-        if (true) {
-          return Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
-            byte _5_j = (byte)_forall_var_1;
-            if (true) {
-              return !(((((_4_i) > (_0_r)) || (((_4_i) == (_0_r)) && ((_5_j) >= (_1_c)))) && ((((byte)(0)) <= (_4_i)) && ((_4_i) < ((byte)(9))))) && ((((byte)(0)) <= (_5_j)) && ((_5_j) < ((byte)(9))))) || (((_2_b1)[(int)(_4_i), (int)(_5_j)]) == ((_3_b2)[(int)(_4_i), (int)(_5_j)]));
-            } else {
-              return true;
-            }
-          })));
-        } else {
-          return true;
-        }
+      return Dafny.Helpers.Id<Func<BigInteger, BigInteger, BigInteger[,], BigInteger[,], bool>>((_0_r, _1_c, _2_b1, _3_b2) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        BigInteger _4_i = (BigInteger)_forall_var_0;
+        return Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
+          BigInteger _5_j = (BigInteger)_forall_var_1;
+          return !(((((_4_i) > (_0_r)) || (((_4_i) == (_0_r)) && ((_5_j) >= (_1_c)))) && (((_4_i).Sign != -1) && ((_4_i) < (new BigInteger(9))))) && (((_5_j).Sign != -1) && ((_5_j) < (new BigInteger(9))))) || (((_2_b1)[(int)(_4_i), (int)(_5_j)]) == ((_3_b2)[(int)(_4_i), (int)(_5_j)]));
+        })));
       }))))(r, c, b1, b2);
     }
-    public static void changeToZero(byte[,] board, byte row, byte column)
+    public static void changeToZero(BigInteger[,] board, BigInteger row, BigInteger column)
     {
-      (board)[(int)((row)), (int)((column))] = (byte)(0);
+      (board)[(int)((row)), (int)((column))] = BigInteger.Zero;
     }
-    public static void changeToSValue(byte[,] board, byte r, byte c, byte digit)
+    public static void changeToSValue(BigInteger[,] board, BigInteger r, BigInteger c, BigInteger digit)
     {
       (board)[(int)((r)), (int)((c))] = digit;
     }
-    public static byte nextRow(byte row, byte column)
+    public static BigInteger nextRow(BigInteger row, BigInteger column)
     {
-      if ((column) == ((byte)(8))) {
-        return (byte)((row) + ((byte)(1)));
+      if ((column) == (new BigInteger(8))) {
+        return (row) + (BigInteger.One);
       } else {
         return row;
       }
     }
-    public static byte nextColumn(byte row, byte column)
+    public static BigInteger nextColumn(BigInteger row, BigInteger column)
     {
-      if ((column) == ((byte)(8))) {
-        return (byte)(0);
+      if ((column) == (new BigInteger(8))) {
+        return BigInteger.Zero;
       } else {
-        return (byte)((column) + ((byte)(1)));
+        return (column) + (BigInteger.One);
       }
     }
-    public static byte prevRow(byte row, byte column)
+    public static BigInteger prevRow(BigInteger row, BigInteger column)
     {
-      if ((column) == ((byte)(0))) {
-        return (byte)((row) - ((byte)(1)));
+      if ((column).Sign == 0) {
+        return (row) - (BigInteger.One);
       } else {
         return row;
       }
     }
-    public static byte prevColumn(byte row, byte column)
+    public static BigInteger prevColumn(BigInteger row, BigInteger column)
     {
-      if ((column) == ((byte)(0))) {
-        return (byte)(8);
+      if ((column).Sign == 0) {
+        return new BigInteger(8);
       } else {
-        return (byte)((column) - ((byte)(1)));
+        return (column) - (BigInteger.One);
       }
     }
-    public static Datatypes._IOption<_System._ITuple2<byte, byte>> FindEmptySlot(byte[,] board)
+    public static Datatypes._IOption<_System._ITuple2<BigInteger, BigInteger>> FindEmptySlot(BigInteger[,] board)
     {
-      Datatypes._IOption<_System._ITuple2<byte, byte>> slot = Datatypes.Option<_System._ITuple2<byte, byte>>.Default();
-      byte _hi0 = (byte)(9);
-      for (byte _0_i = (byte)(0); _0_i < _hi0; _0_i++) {
-        byte _hi1 = (byte)(9);
-        for (byte _1_j = (byte)(0); _1_j < _hi1; _1_j++) {
-          if (((board)[(int)(_0_i), (int)(_1_j)]) == ((byte)(0))) {
-            slot = Datatypes.Option<_System._ITuple2<byte, byte>>.create_Some(_System.Tuple2<byte, byte>.create(_0_i, _1_j));
+      Datatypes._IOption<_System._ITuple2<BigInteger, BigInteger>> slot = Datatypes.Option<_System._ITuple2<BigInteger, BigInteger>>.Default();
+      BigInteger _hi0 = new BigInteger(9);
+      for (BigInteger _0_i = BigInteger.Zero; _0_i < _hi0; _0_i++) {
+        BigInteger _hi1 = new BigInteger(9);
+        for (BigInteger _1_j = BigInteger.Zero; _1_j < _hi1; _1_j++) {
+          if (((board)[(int)(_0_i), (int)(_1_j)]).Sign == 0) {
+            slot = Datatypes.Option<_System._ITuple2<BigInteger, BigInteger>>.create_Some(_System.Tuple2<BigInteger, BigInteger>.create(_0_i, _1_j));
             return slot;
           }
         }
       }
-      slot = Datatypes.Option<_System._ITuple2<byte, byte>>.create_None();
+      slot = Datatypes.Option<_System._ITuple2<BigInteger, BigInteger>>.create_None();
       return slot;
       return slot;
     }
-    public static byte EmptySlotCountRecursiveUpwards(byte[,] board, byte r, byte c)
+    public static BigInteger EmptySlotCountRecursiveUpwards(BigInteger[,] board, BigInteger r, BigInteger c)
     {
-      byte _0_current__cell__val = ((((board)[(int)(r), (int)(c)]) == ((byte)(0))) ? ((byte)(1)) : ((byte)(0)));
-      if (((r) == ((byte)(8))) && ((c) == ((byte)(8)))) {
+      BigInteger _0_current__cell__val = ((((board)[(int)(r), (int)(c)]).Sign == 0) ? (BigInteger.One) : (BigInteger.Zero));
+      if (((r) == (new BigInteger(8))) && ((c) == (new BigInteger(8)))) {
         return _0_current__cell__val;
       } else {
-        byte _1_nextRow = SudokuSolver.__default.nextRow(r, c);
-        byte _2_nextColumn = SudokuSolver.__default.nextColumn(r, c);
-        byte _3_recursiveResult = SudokuSolver.__default.EmptySlotCountRecursiveUpwards(board, _1_nextRow, _2_nextColumn);
-        return (byte)((_0_current__cell__val) + (_3_recursiveResult));
+        BigInteger _1_nextRow = SudokuSolver.__default.nextRow(r, c);
+        BigInteger _2_nextColumn = SudokuSolver.__default.nextColumn(r, c);
+        BigInteger _3_recursiveResult = SudokuSolver.__default.EmptySlotCountRecursiveUpwards(board, _1_nextRow, _2_nextColumn);
+        return (_0_current__cell__val) + (_3_recursiveResult);
       }
     }
-    public static byte EmptySlotCountRecursiveDownwards(byte[,] board, byte r, byte c)
+    public static BigInteger EmptySlotCountRecursiveDownwards(BigInteger[,] board, BigInteger r, BigInteger c)
     {
-      byte _0_current__cell__val = ((((board)[(int)(r), (int)(c)]) == ((byte)(0))) ? ((byte)(1)) : ((byte)(0)));
-      if (((r) == ((byte)(0))) && ((c) == ((byte)(0)))) {
+      BigInteger _0_current__cell__val = ((((board)[(int)(r), (int)(c)]).Sign == 0) ? (BigInteger.One) : (BigInteger.Zero));
+      if (((r).Sign == 0) && ((c).Sign == 0)) {
         return _0_current__cell__val;
       } else {
-        byte _1_prev__r = SudokuSolver.__default.prevRow(r, c);
-        byte _2_prev__c = SudokuSolver.__default.prevColumn(r, c);
-        byte _3_recursiveResult = SudokuSolver.__default.EmptySlotCountRecursiveDownwards(board, _1_prev__r, _2_prev__c);
-        return (byte)((_0_current__cell__val) + (_3_recursiveResult));
+        BigInteger _1_prev__r = SudokuSolver.__default.prevRow(r, c);
+        BigInteger _2_prev__c = SudokuSolver.__default.prevColumn(r, c);
+        BigInteger _3_recursiveResult = SudokuSolver.__default.EmptySlotCountRecursiveDownwards(board, _1_prev__r, _2_prev__c);
+        return (_0_current__cell__val) + (_3_recursiveResult);
       }
     }
-    public static byte EmptySlotCount(byte[,] board) {
-      return SudokuSolver.__default.EmptySlotCountRecursiveDownwards(board, (byte)(8), (byte)(8));
+    public static BigInteger EmptySlotCount(BigInteger[,] board) {
+      return SudokuSolver.__default.EmptySlotCountRecursiveDownwards(board, new BigInteger(8), new BigInteger(8));
     }
-    public static bool is9x9(byte[,] board) {
+    public static bool is9x9(BigInteger[,] board) {
       return ((new BigInteger((board).GetLength(0))) == (new BigInteger(9))) && ((new BigInteger((board).GetLength(1))) == (new BigInteger(9)));
     }
-    public static bool isValidDigitMethod(byte[,] board, byte row, byte column, byte digit)
+    public static bool isValidDigitMethod(BigInteger[,] board, BigInteger row, BigInteger column, BigInteger digit)
     {
       bool isValid = false;
-      if ((digit) == ((byte)(0))) {
+      if ((digit).Sign == 0) {
         isValid = true;
         return isValid;
       }
-      byte _hi0 = (byte)(9);
-      for (byte _0_i = (byte)(0); _0_i < _hi0; _0_i++) {
+      BigInteger _hi0 = new BigInteger(9);
+      for (BigInteger _0_i = BigInteger.Zero; _0_i < _hi0; _0_i++) {
         if (((_0_i) != (column)) && (((board)[(int)(row), (int)(_0_i)]) == (digit))) {
           isValid = false;
           return isValid;
@@ -6644,14 +6631,14 @@ namespace SudokuSolver {
           return isValid;
         }
       }
-      byte _1_box__row;
-      _1_box__row = (byte)(((byte)((row) / ((byte)(3)))) * ((byte)(3)));
-      byte _2_box__col;
-      _2_box__col = (byte)(((byte)((column) / ((byte)(3)))) * ((byte)(3)));
-      byte _hi1 = (byte)((_1_box__row) + ((byte)(3)));
-      for (byte _3_r = _1_box__row; _3_r < _hi1; _3_r++) {
-        byte _hi2 = (byte)((_2_box__col) + ((byte)(3)));
-        for (byte _4_c = _2_box__col; _4_c < _hi2; _4_c++) {
+      BigInteger _1_box__row;
+      _1_box__row = (Dafny.Helpers.EuclideanDivision(row, new BigInteger(3))) * (new BigInteger(3));
+      BigInteger _2_box__col;
+      _2_box__col = (Dafny.Helpers.EuclideanDivision(column, new BigInteger(3))) * (new BigInteger(3));
+      BigInteger _hi1 = (_1_box__row) + (new BigInteger(3));
+      for (BigInteger _3_r = _1_box__row; _3_r < _hi1; _3_r++) {
+        BigInteger _hi2 = (_2_box__col) + (new BigInteger(3));
+        for (BigInteger _4_c = _2_box__col; _4_c < _hi2; _4_c++) {
           if ((((_3_r) != (row)) || ((_4_c) != (column))) && (((board)[(int)(_3_r), (int)(_4_c)]) == (digit))) {
             isValid = false;
             return isValid;
@@ -6662,59 +6649,43 @@ namespace SudokuSolver {
       return isValid;
       return isValid;
     }
-    public static bool isValidDigit(byte[,] board, byte row, byte column, byte digit)
+    public static bool isValidDigit(BigInteger[,] board, BigInteger row, BigInteger column, BigInteger digit)
     {
       return ((SudokuSolver.__default.isValidInRow(board, row, column, digit)) && (SudokuSolver.__default.isValidInColumn(board, row, column, digit))) && (SudokuSolver.__default.isValidIn3x3(board, row, column, digit));
     }
-    public static bool isValidInRow(byte[,] board, byte row, byte column, byte digit)
+    public static bool isValidInRow(BigInteger[,] board, BigInteger row, BigInteger column, BigInteger digit)
     {
-      return ((digit) == ((byte)(0))) || (Dafny.Helpers.Id<Func<byte, byte[,], byte, byte, bool>>((_0_column, _1_board, _2_row, _3_digit) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
-        byte _4_c = (byte)_forall_var_0;
-        if (true) {
-          return !((((byte)(0)) <= (_4_c)) && ((_4_c) < ((byte)(9)))) || (((_4_c) == (_0_column)) || (((_1_board)[(int)(_2_row), (int)(_4_c)]) != (_3_digit)));
-        } else {
-          return true;
-        }
+      return ((digit).Sign == 0) || (Dafny.Helpers.Id<Func<BigInteger, BigInteger[,], BigInteger, BigInteger, bool>>((_0_column, _1_board, _2_row, _3_digit) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        BigInteger _4_c = (BigInteger)_forall_var_0;
+        return !(((_4_c).Sign != -1) && ((_4_c) < (new BigInteger(9)))) || (((_4_c) == (_0_column)) || (((_1_board)[(int)(_2_row), (int)(_4_c)]) != (_3_digit)));
       }))))(column, board, row, digit));
     }
-    public static bool isValidInColumn(byte[,] board, byte row, byte column, byte digit)
+    public static bool isValidInColumn(BigInteger[,] board, BigInteger row, BigInteger column, BigInteger digit)
     {
-      return ((digit) == ((byte)(0))) || (Dafny.Helpers.Id<Func<byte, byte[,], byte, byte, bool>>((_0_row, _1_board, _2_column, _3_digit) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
-        byte _4_r = (byte)_forall_var_0;
-        if (true) {
-          return !((((byte)(0)) <= (_4_r)) && ((_4_r) < ((byte)(9)))) || (((_4_r) == (_0_row)) || (((_1_board)[(int)(_4_r), (int)(_2_column)]) != (_3_digit)));
-        } else {
-          return true;
-        }
+      return ((digit).Sign == 0) || (Dafny.Helpers.Id<Func<BigInteger, BigInteger[,], BigInteger, BigInteger, bool>>((_0_row, _1_board, _2_column, _3_digit) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        BigInteger _4_r = (BigInteger)_forall_var_0;
+        return !(((_4_r).Sign != -1) && ((_4_r) < (new BigInteger(9)))) || (((_4_r) == (_0_row)) || (((_1_board)[(int)(_4_r), (int)(_2_column)]) != (_3_digit)));
       }))))(row, board, column, digit));
     }
-    public static bool isValidIn3x3(byte[,] board, byte row, byte column, byte digit)
+    public static bool isValidIn3x3(BigInteger[,] board, BigInteger row, BigInteger column, BigInteger digit)
     {
-      byte _0_box__row = (byte)(((byte)((row) / ((byte)(3)))) * ((byte)(3)));
-      byte _1_box__col = (byte)(((byte)((column) / ((byte)(3)))) * ((byte)(3)));
-      return ((digit) == ((byte)(0))) || (Dafny.Helpers.Id<Func<byte, byte, byte, byte, byte[,], byte, bool>>((_2_box__row, _3_box__col, _4_row, _5_column, _6_board, _7_digit) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(256)), true, (((_forall_var_0) => {
-        byte _8_r = (byte)_forall_var_0;
-        if (true) {
-          return Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(256)), true, (((_forall_var_1) => {
-            byte _9_c = (byte)_forall_var_1;
-            if (true) {
-              return !((((_2_box__row) <= (_8_r)) && ((_8_r) < ((byte)((_2_box__row) + ((byte)(3)))))) && (((_3_box__col) <= (_9_c)) && ((_9_c) < ((byte)((_3_box__col) + ((byte)(3))))))) || ((((_8_r) == (_4_row)) && ((_9_c) == (_5_column))) || (((_6_board)[(int)(_8_r), (int)(_9_c)]) != (_7_digit)));
-            } else {
-              return true;
-            }
-          })));
-        } else {
-          return true;
-        }
+      BigInteger _0_box__row = (Dafny.Helpers.EuclideanDivision(row, new BigInteger(3))) * (new BigInteger(3));
+      BigInteger _1_box__col = (Dafny.Helpers.EuclideanDivision(column, new BigInteger(3))) * (new BigInteger(3));
+      return ((digit).Sign == 0) || (Dafny.Helpers.Id<Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger[,], BigInteger, bool>>((_2_box__row, _3_box__col, _4_row, _5_column, _6_board, _7_digit) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(_2_box__row, (_2_box__row) + (new BigInteger(3))), true, (((_forall_var_0) => {
+        BigInteger _8_r = (BigInteger)_forall_var_0;
+        return Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(_3_box__col, (_3_box__col) + (new BigInteger(3))), true, (((_forall_var_1) => {
+          BigInteger _9_c = (BigInteger)_forall_var_1;
+          return !((((_2_box__row) <= (_8_r)) && ((_8_r) < ((_2_box__row) + (new BigInteger(3))))) && (((_3_box__col) <= (_9_c)) && ((_9_c) < ((_3_box__col) + (new BigInteger(3)))))) || ((((_8_r) == (_4_row)) && ((_9_c) == (_5_column))) || (((_6_board)[(int)(_8_r), (int)(_9_c)]) != (_7_digit)));
+        })));
       }))))(_0_box__row, _1_box__col, row, column, board, digit));
     }
-    public static bool isValidBoardMethod(byte[,] board)
+    public static bool isValidBoardMethod(BigInteger[,] board)
     {
       bool isValid = false;
-      byte _hi0 = (byte)(9);
-      for (byte _0_r = (byte)(0); _0_r < _hi0; _0_r++) {
-        byte _hi1 = (byte)(9);
-        for (byte _1_c = (byte)(0); _1_c < _hi1; _1_c++) {
+      BigInteger _hi0 = new BigInteger(9);
+      for (BigInteger _0_r = BigInteger.Zero; _0_r < _hi0; _0_r++) {
+        BigInteger _hi1 = new BigInteger(9);
+        for (BigInteger _1_c = BigInteger.Zero; _1_c < _hi1; _1_c++) {
           bool _2_isValidDigit;
           bool _out0;
           _out0 = SudokuSolver.__default.isValidDigitMethod(board, _0_r, _1_c, (board)[(int)(_0_r), (int)(_1_c)]);
@@ -6729,39 +6700,49 @@ namespace SudokuSolver {
       return isValid;
       return isValid;
     }
-    public static bool isValidBoard(byte[,] board) {
-      return Dafny.Helpers.Id<Func<byte[,], bool>>((_0_board) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
-        byte _1_r = (byte)_forall_var_0;
-        if (true) {
-          return Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
-            byte _2_c = (byte)_forall_var_1;
-            if (true) {
-              return !(((((byte)(0)) <= (_1_r)) && ((_1_r) < ((byte)(9)))) && ((((byte)(0)) <= (_2_c)) && ((_2_c) < ((byte)(9))))) || (SudokuSolver.__default.isValidDigit(_0_board, _1_r, _2_c, (_0_board)[(int)(_1_r), (int)(_2_c)]));
-            } else {
-              return true;
-            }
-          })));
-        } else {
-          return true;
-        }
+    public static bool isValidBoard(BigInteger[,] board) {
+      return Dafny.Helpers.Id<Func<BigInteger[,], bool>>((_0_board) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        BigInteger _1_r = (BigInteger)_forall_var_0;
+        return Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
+          BigInteger _2_c = (BigInteger)_forall_var_1;
+          return !((((_1_r).Sign != -1) && ((_1_r) < (new BigInteger(9)))) && (((_2_c).Sign != -1) && ((_2_c) < (new BigInteger(9))))) || (SudokuSolver.__default.isValidDigit(_0_board, _1_r, _2_c, (_0_board)[(int)(_1_r), (int)(_2_c)]));
+        })));
       }))))(board);
     }
-    public static bool isFullBoard(byte[,] board) {
-      return Dafny.Helpers.Id<Func<byte[,], bool>>((_0_board) => Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
-        byte _1_r = (byte)_forall_var_0;
-        if (true) {
-          return Dafny.Helpers.Quantifier<byte>(Datatypes.uint8.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
-            byte _2_c = (byte)_forall_var_1;
-            if (true) {
-              return !(((((byte)(0)) <= (_1_r)) && ((_1_r) < ((byte)(9)))) && ((((byte)(0)) <= (_2_c)) && ((_2_c) < ((byte)(9))))) || ((((byte)(1)) <= ((_0_board)[(int)(_1_r), (int)(_2_c)])) && (((_0_board)[(int)(_1_r), (int)(_2_c)]) <= ((byte)(9))));
-            } else {
-              return true;
-            }
-          })));
-        } else {
-          return true;
-        }
+    public static bool isFullBoard(BigInteger[,] board) {
+      return Dafny.Helpers.Id<Func<BigInteger[,], bool>>((_0_board) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        BigInteger _1_r = (BigInteger)_forall_var_0;
+        return Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
+          BigInteger _2_c = (BigInteger)_forall_var_1;
+          return !((((_1_r).Sign != -1) && ((_1_r) < (new BigInteger(9)))) && (((_2_c).Sign != -1) && ((_2_c) < (new BigInteger(9))))) || (((BigInteger.One) <= ((_0_board)[(int)(_1_r), (int)(_2_c)])) && (((_0_board)[(int)(_1_r), (int)(_2_c)]) <= (new BigInteger(9))));
+        })));
       }))))(board);
+    }
+    public static bool hasOnlyValidDigits(BigInteger[,] board) {
+      return Dafny.Helpers.Id<Func<BigInteger[,], bool>>((_0_board) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_0) => {
+        BigInteger _1_r = (BigInteger)_forall_var_0;
+        return Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger(9)), true, (((_forall_var_1) => {
+          BigInteger _2_c = (BigInteger)_forall_var_1;
+          return !((((_1_r).Sign != -1) && ((_1_r) < (new BigInteger(9)))) && (((_2_c).Sign != -1) && ((_2_c) < (new BigInteger(9))))) || ((((_0_board)[(int)(_1_r), (int)(_2_c)]).Sign != -1) && (((_0_board)[(int)(_1_r), (int)(_2_c)]) <= (new BigInteger(9))));
+        })));
+      }))))(board);
+    }
+    public static bool hasOnlyValidDigitsMethod(BigInteger[,] board)
+    {
+      bool isValid = false;
+      BigInteger _hi0 = new BigInteger(9);
+      for (BigInteger _0_r = BigInteger.Zero; _0_r < _hi0; _0_r++) {
+        BigInteger _hi1 = new BigInteger(9);
+        for (BigInteger _1_c = BigInteger.Zero; _1_c < _hi1; _1_c++) {
+          if (!((((board)[(int)(_0_r), (int)(_1_c)]).Sign != -1) && (((board)[(int)(_0_r), (int)(_1_c)]) <= (new BigInteger(9))))) {
+            isValid = false;
+            return isValid;
+          }
+        }
+      }
+      isValid = true;
+      return isValid;
+      return isValid;
     }
   }
 } // end of namespace SudokuSolver

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Numerics;
 using Board = byte[,];
 
 public static class SudokuParser
@@ -15,7 +16,7 @@ public static class SudokuParser
     /// <param name="filePath">The path to the puzzle file.</param>
     /// <returns>A tuple containing two identical arrays of populated Board objects (byte[,]).</returns>
     /// <exception cref="FileNotFoundException">Thrown if the specified file does not exist.</exception>
-    public static (Board[], Board[]) LoadPuzzlesFromFile(string filePath)
+    public static (Board[], BigInteger[][,]) LoadPuzzlesFromFile(string filePath)
     {
         if (!File.Exists(filePath))
         {
@@ -23,18 +24,19 @@ public static class SudokuParser
         }
 
         var boards1 = new ConcurrentBag<Board>();
-        var boards2 = new ConcurrentBag<Board>();
+        var boards2 = new ConcurrentBag<BigInteger[,]>();
 
         Parallel.ForEach(File.ReadLines(filePath), line =>
         {
             Board? board = TryParseBoard(line);
+            BigInteger[,]? board2 = TryParseIntoBigInteger(line);
             if (board != null)
             {
                 boards1.Add(board);
-
-                var boardCopy = new byte[GridSize, GridSize];
-                Array.Copy(board, boardCopy, board.Length);
-                boards2.Add(boardCopy);
+            }
+            if(board2 != null)
+            {
+                boards2.Add(board2);
             }
         });
 
@@ -71,6 +73,36 @@ public static class SudokuParser
 
         return board;
     }
+    /// <summary>
+    /// Attempts to parse a single string into a Board object.
+    /// </summary>
+    /// <param name="puzzleString">The 81-character string representing the puzzle.</param>
+    /// <returns>A new Board (byte[,]) if parsing is successful; otherwise, null.</returns>
+    private static BigInteger[,]? TryParseIntoBigInteger(string puzzleString)
+    {
+        if (string.IsNullOrWhiteSpace(puzzleString) || puzzleString.Length != TotalCells)
+        {
+            return null;
+        }
+
+        var board = new BigInteger[GridSize, GridSize];
+        for (int i = 0; i < TotalCells; i++)
+        {
+            char cellChar = puzzleString[i];
+            if (!char.IsDigit(cellChar))
+            {
+                // Note: For extreme performance, this check could be removed if the input
+                // file is guaranteed to be 100% valid. However, it's safer to keep it.
+                return null;
+            }
+
+            int row = i / GridSize;
+            int col = i % GridSize;
+            board[row, col] = new BigInteger(cellChar - '0');
+        }
+
+        return board;
+    }
 }
 
 public class SudokuByHand
@@ -91,7 +123,7 @@ public class SudokuByHand
         }
         SudokuByHand.Test(boards1, boards2);
     }
-    public static void Test(Board[] boards1, Board[] boards2)
+    public static void Test(Board[] boards1, BigInteger[][,] boards2)
     {
         var sw1 = Stopwatch.StartNew();
         Run(boards1);
@@ -103,6 +135,7 @@ public class SudokuByHand
         sw2.Stop();
         Console.WriteLine($"csharp_dafny,{boards2.Length},{sw2.ElapsedMilliseconds}");
     }
+
 
     public ref struct Option<T>
     {
