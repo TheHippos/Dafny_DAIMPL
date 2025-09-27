@@ -1,0 +1,70 @@
+% LaTeX code generated from Python analysis script
+% You may need the booktabs and multirow packages.
+
+
+% --- Table 1: Detailed Performance Comparison ---
+\begin{table*}[ht]
+\caption{Performance Comparison (Mean and Standard Deviation) in ms for a workload of 200 runs.}
+\label{tab:perf_data}
+\begin{tabular}{llrrrr}
+\toprule
+ & Language & csharp & go & python & java \\
+Variant & Statistic &  &  &  &  \\
+\midrule
+\multirow[t]{2}{*}{handwritten} & Mean & 108 & 0 & 0 & 0 \\
+ & SD & 23 & 0 & 0 & 0 \\
+\cline{1-6}
+\multirow[t]{2}{*}{dafny} & Mean & 122 & 0 & 0 & 0 \\
+ & SD & 6 & 0 & 0 & 0 \\
+\cline{1-6}
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% --- Table 2: Welch's ANOVA Results ---
+\begin{table}[!htbp]
+\caption{Welch's ANOVA for Overall Group Differences on Performance.}
+\label{tab:welch_anova}
+\begin{tabular}{lrrrrr}
+\toprule
+Source & df1 & df2 & F & p-value & $\eta_p^2$ \\
+\midrule
+group & 3 & 20.4738 & 23232.5998 & 0.0000 & 0.9999 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% --- Table 3: Key Post-Hoc Comparisons ---
+\begin{table*}[!htbp]
+\caption{Games-Howell Post-Hoc Test Results for Dafny vs. Handwritten Variants.}
+\label{tab:key_comparisons}
+\begin{tabular}{llrrr}
+\toprule
+Group 1 & Group 2 & Mean Diff. & p-value & Hedges' g \\
+\midrule
+dafny & handwritten & 14.4667 & 0.0149 & 0.7043 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% --- Table 4: Full Post-Hoc Test Results (for Appendix) ---
+\begin{table*}[!htbp]
+\caption{Full Pairwise Games-Howell Post-Hoc Test Results.}
+\label{tab:full_comparisons}
+\small
+\begin{tabular}{llrrrrrrrr}
+\toprule
+A & B & mean(A) & mean(B) & diff & se & T & df & pval & hedges \\
+\midrule
+Predicates & Types & 103515.4000 & 341.7000 & 103173.7000 & 380.9627 & 270.8236 & 9.0112 & 0.0000 & 115.9984 \\
+Predicates & dafny & 103515.4000 & 122.2000 & 103393.2000 & 380.8488 & 271.4809 & 9.0004 & 0.0000 & 116.2800 \\
+Predicates & handwritten & 103515.4000 & 107.7333 & 103407.6667 & 380.8674 & 271.5057 & 9.0022 & 0.0000 & 172.8260 \\
+Types & dafny & 341.7000 & 122.2000 & 219.5000 & 9.6550 & 22.7344 & 9.6473 & 0.0000 & 9.7375 \\
+Types & handwritten & 341.7000 & 107.7333 & 233.9667 & 10.3609 & 22.5816 & 12.6637 & 0.0000 & 9.2788 \\
+dafny & handwritten & 122.2000 & 107.7333 & 14.4667 & 4.5398 & 3.1866 & 36.7119 & 0.0149 & 0.7043 \\
+\bottomrule
+\end{tabular}
+\end{table*}

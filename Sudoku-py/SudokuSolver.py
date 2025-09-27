@@ -55,12 +55,12 @@ class default__:
             result = Datatypes.Option_None()
             return result
         out2_: Datatypes.Option
-        out2_ = default__.Solving(board)
+        out2_ = default__.SolveRecursively(board)
         result = out2_
         return result
 
     @staticmethod
-    def Solving(board):
+    def SolveRecursively(board):
         result: Datatypes.Option = Datatypes.Option.default()()
         d_0_empty_: Datatypes.Option
         out0_: Datatypes.Option
@@ -83,7 +83,7 @@ class default__:
                 default__.changeToSValue(board, d_1_r_, d_2_c_, d_3_digit_)
                 d_5_recursiveResult_: Datatypes.Option
                 out2_: Datatypes.Option
-                out2_ = default__.Solving(board)
+                out2_ = default__.SolveRecursively(board)
                 d_5_recursiveResult_ = out2_
                 if (d_5_recursiveResult_).is_Some:
                     result = d_5_recursiveResult_

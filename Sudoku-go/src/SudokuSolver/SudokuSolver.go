@@ -118,11 +118,11 @@ func (_static *CompanionStruct_Default___) Solve(board _dafny.Array) m_Datatypes
 	}
 	var _out2 m_Datatypes.Option
 	_ = _out2
-	_out2 = Companion_Default___.Solving(board)
+	_out2 = Companion_Default___.SolveRecursively(board)
 	result = _out2
 	return result
 }
-func (_static *CompanionStruct_Default___) Solving(board _dafny.Array) m_Datatypes.Option {
+func (_static *CompanionStruct_Default___) SolveRecursively(board _dafny.Array) m_Datatypes.Option {
 	var result m_Datatypes.Option = m_Datatypes.Companion_Option_.Default()
 	_ = result
 	var _0_empty m_Datatypes.Option
@@ -156,7 +156,7 @@ func (_static *CompanionStruct_Default___) Solving(board _dafny.Array) m_Datatyp
 			_ = _5_recursiveResult
 			var _out2 m_Datatypes.Option
 			_ = _out2
-			_out2 = Companion_Default___.Solving(board)
+			_out2 = Companion_Default___.SolveRecursively(board)
 			_5_recursiveResult = _out2
 			if (_5_recursiveResult).Is_Some() {
 				result = _5_recursiveResult

@@ -64,10 +64,10 @@ module SudokuSolver {
       return None;
     }
     ghost var boardCopy := ghost_copy(board);
-    result := Solving(board);
+    result := SolveRecursively(board);
   }
 
-  method Solving(board: Board) returns (result: Option<Board>)
+  method SolveRecursively(board: Board) returns (result: Option<Board>)
     requires is9x9(board)
     requires isValidBoard(board)
     requires hasOnlyValidDigits(board)
@@ -89,7 +89,7 @@ module SudokuSolver {
       var isValid := isValidDigitMethod(board, r, c, digit as sValue);
       if isValid {
         changeToSValue(board, r, c, digit as sValue);
-        var recursiveResult := Solving(board);
+        var recursiveResult := SolveRecursively(board);
         if recursiveResult.Some? {
           return recursiveResult;
         }
@@ -6485,11 +6485,11 @@ namespace SudokuSolver {
         return result;
       }
       Datatypes._IOption<byte[,]> _out2;
-      _out2 = SudokuSolver.__default.Solving(board);
+      _out2 = SudokuSolver.__default.SolveRecursively(board);
       result = _out2;
       return result;
     }
-    public static Datatypes._IOption<byte[,]> Solving(byte[,] board)
+    public static Datatypes._IOption<byte[,]> SolveRecursively(byte[,] board)
     {
       Datatypes._IOption<byte[,]> result = Datatypes.Option<byte[,]>.Default();
       Datatypes._IOption<_System._ITuple2<byte, byte>> _0_empty;
@@ -6514,7 +6514,7 @@ namespace SudokuSolver {
           SudokuSolver.__default.changeToSValue(board, _1_r, _2_c, (byte)(_3_digit));
           Datatypes._IOption<byte[,]> _5_recursiveResult;
           Datatypes._IOption<byte[,]> _out2;
-          _out2 = SudokuSolver.__default.Solving(board);
+          _out2 = SudokuSolver.__default.SolveRecursively(board);
           _5_recursiveResult = _out2;
           if ((_5_recursiveResult).is_Some) {
             result = _5_recursiveResult;

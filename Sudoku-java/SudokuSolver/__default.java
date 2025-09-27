@@ -55,12 +55,12 @@ public class __default {
         return result;
       }
       Datatypes.Option<dafny.Array2<java.lang.Byte>> _out2;
-      _out2 = __default.Solving(board);
+      _out2 = __default.SolveRecursively(board);
       result = _out2;
     }
     return result;
   }
-  public static Datatypes.Option<dafny.Array2<java.lang.Byte>> Solving(dafny.Array2<java.lang.Byte> board)
+  public static Datatypes.Option<dafny.Array2<java.lang.Byte>> SolveRecursively(dafny.Array2<java.lang.Byte> board)
   {
     Datatypes.Option<dafny.Array2<java.lang.Byte>> result = Datatypes.Option.<dafny.Array2<java.lang.Byte>>Default(dafny.Array2.<java.lang.Byte>_typeDescriptor());
     Datatypes.Option<dafny.Tuple2<java.lang.Byte, java.lang.Byte>> _0_empty;
@@ -85,7 +85,7 @@ public class __default {
         __default.changeToSValue(board, _1_r, _2_c, (_3_digit));
         Datatypes.Option<dafny.Array2<java.lang.Byte>> _5_recursiveResult;
         Datatypes.Option<dafny.Array2<java.lang.Byte>> _out2;
-        _out2 = __default.Solving(board);
+        _out2 = __default.SolveRecursively(board);
         _5_recursiveResult = _out2;
         if ((_5_recursiveResult).is_Some()) {
           result = _5_recursiveResult;

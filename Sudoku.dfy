@@ -45,10 +45,10 @@ module SudokuSolver{
             return None;
         }
         ghost var boardCopy := ghost_copy(board);
-        result:= Solving(board);
+        result:= SolveRecursively(board);
     }
 
-    method Solving(board: Board) returns(result: Option<Board>)
+    method SolveRecursively(board: Board) returns(result: Option<Board>)
         modifies board
         requires is9x9(board)
         requires isValidBoard(board)
@@ -73,7 +73,7 @@ module SudokuSolver{
             var isValid := isValidDigitMethod(board, r, c, digit as sValue);
             if (isValid){
                 changeToSValue(board, r,c, digit as sValue);
-                var recursiveResult := Solving(board);
+                var recursiveResult := SolveRecursively(board);
                 if(recursiveResult.Some?)
                 {
                     return recursiveResult;
